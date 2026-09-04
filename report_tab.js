@@ -98,3 +98,51 @@ function initRouteExplorer(root, A, routesFC, opts) {
   select(d);
   return map;
 }
+
+// ---------- concept layouts tab ----------
+const CP_STYLE = f => { const p = f.properties, k = p.kind;
+  if (k === 'lot') return { color: '#7c4a03', weight: 1, fillColor: ({ 'base': '#fde68a', 'vista/alto (+10 %)': '#fdba74', 'pendiente 12-22 % (-15 %)': '#d9f99d', 'lote con vista (+25 %)': '#f9a8d4' })[p.tier] || '#fde68a', fillOpacity: .75 };
+  if (k === 'plaza') return { color: '#3730a3', weight: 1.2, fillColor: '#c7d2fe', fillOpacity: .8 };
+  if (k === 'park' || k === 'garden') return { color: '#166534', weight: 1.2, fillColor: '#bbf7d0', fillOpacity: .8 };
+  if (k === 'green') return { color: '#9ca3af', weight: .8, fillColor: '#e5e7eb', fillOpacity: .6 };
+  if (k === 'forest') return { color: '#166534', weight: 1, fillColor: '#86efac', fillOpacity: .3 };
+  if (k === 'road') return { color: '#111', weight: 5, opacity: .9 };
+  if (k === 'trail') return { color: '#166534', weight: 2, dashArray: '3 5' };
+  return { color: '#333', weight: 1 }; };
+const CP_POINT = (f, ll) => f.properties.kind === 'gate' ? L.circleMarker(ll, { radius: 7, color: '#000', fillColor: 'red', fillOpacity: 1 }) : L.circleMarker(ll, { radius: 6, color: '#000', fillColor: '#fff', fillOpacity: 1 });
+function cpPopup(f) { const p = f.properties, fmt = n => Number(n).toLocaleString('en-US');
+  if (p.kind === 'lot') return `<div class="popup"><h4>Lot ${p.id}</h4><table><tr><td>area</td><td><b>${fmt(p.area_m2)} m²</b></td></tr><tr><td>price</td><td><b>US$ ${fmt(p.price_usd)}</b> (${p.price_usd_m2}/m², ${p.tier})</td></tr><tr><td>ground slope</td><td>${p.slope_pct} %</td></tr><tr><td>elevation</td><td>${p.elev_m} m</td></tr></table></div>`;
+  if (p.kind === 'road') return `<div class="popup"><h4>Street (${p.class})</h4><table><tr><td>length</td><td>${p.length_m} m</td></tr><tr><td>carriageway / right of way</td><td>${p.carriageway_m} / ${p.row_m} m</td></tr><tr><td>grade mean / max</td><td>${p.grade_mean_pct} / ${p.grade_max_pct} %</td></tr>${p.note ? `<tr><td>note</td><td>${p.note}</td></tr>` : ''}</table></div>`;
+  return `<div class="popup"><h4>${p.label || p.kind}</h4>${p.area_m2 ? `${fmt(p.area_m2)} m²` : ''}</div>`; }
+function makeConceptLayer(fc) { return L.geoJSON(fc, { style: CP_STYLE, pointToLayer: CP_POINT, onEachFeature: (f, l) => { l.bindPopup(cpPopup(f)); if (f.properties.kind === 'lot') l.bindTooltip(`${f.properties.area_m2} m² · US$ ${Number(f.properties.price_usd).toLocaleString('en-US')}`, { sticky: true }); } }); }
+function initConceptTab(root, summary, layouts, opts) {
+  const host = root.querySelector('#cp-map'); if (!host || !summary) return null;
+  const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { maximumFractionDigits: d });
+  const map = L.map('cp-map', { preferCanvas: true, attributionControl: false }); opts.base(map);
+  if (opts.parcels) L.geoJSON(opts.parcels, { style: { color: '#ff0000', weight: 2.5, fill: false } }).addTo(map);
+  let cur = null;
+  function show(k) { if (cur) map.removeLayer(cur); cur = makeConceptLayer(layouts[k]).addTo(map); map.fitBounds(cur.getBounds().pad(0.08));
+    const st = summary.options.find(o => o.option === k); if (!st) return;
+    root.querySelector('#cp-summary').innerHTML = `<table class="rep"><tbody>
+      <tr><td>Option</td><td>${st.title}</td></tr>
+      <tr><td>Lots</td><td><b>${st.lots}</b> (${fmt(st.lot_min_m2)} to ${fmt(st.lot_max_m2)} m², mean ${fmt(st.lot_mean_m2)} m²)</td></tr>
+      <tr><td>Sellable area</td><td>${fmt(st.sellable_m2)} m² of the 86,700 m² developable envelope</td></tr>
+      <tr><td>Streets</td><td>${fmt(st.road_m)} m (right of way ${fmt(st.row_m2)} m²); max grades: ${Object.entries(st.road_grades).map(([a, b]) => `${a} ${b} %`).join(', ')}</td></tr>
+      <tr><td>Plaza / green reserve</td><td>${fmt(st.plaza_m2)} m² / ${fmt(st.green_m2)} m²</td></tr>
+      <tr><td>Sticker revenue</td><td><b>US$ ${fmt(st.revenue_usd)}</b> (US$ ${fmt(st.revenue_usd / st.lots)} per lot on average)</td></tr>
+      <tr><td>Infrastructure</td><td><b>US$ ${fmt(st.cost_total_usd)}</b> = US$ ${fmt(st.cost_per_lot_usd)} per lot = US$ ${st.cost_per_sellable_m2_usd} per sellable m²</td></tr>
+      <tr><td>Margin before land, marketing, commissions and taxes</td><td><b>US$ ${fmt(st.margin_before_land_usd)}</b> (${fmt(100 * st.margin_before_land_usd / st.revenue_usd)} % of revenue)</td></tr></tbody></table>`; }
+  root.querySelector('#cp-option').addEventListener('change', e => show(e.target.value));
+  // costs table (all options)
+  const opts3 = summary.options; const keys = Object.keys(opts3[0].costs);
+  root.querySelector('#cp-costs').innerHTML = `<table class="rep"><thead><tr><th>Item (US$)</th>${opts3.map(o => `<th>${o.option}</th>`).join('')}</tr></thead><tbody>` + keys.map(k => `<tr><td>${k}</td>${opts3.map(o => `<td>${fmt(o.costs[k])}</td>`).join('')}</tr>`).join('') +
+    `<tr><th>Total</th>${opts3.map(o => `<th>${fmt(o.cost_total_usd)}</th>`).join('')}</tr><tr><th>Per lot</th>${opts3.map(o => `<th>${fmt(o.cost_per_lot_usd)}</th>`).join('')}</tr><tr><th>Revenue at sticker</th>${opts3.map(o => `<th>${fmt(o.revenue_usd)}</th>`).join('')}</tr><tr><th>Margin before land etc.</th>${opts3.map(o => `<th>${fmt(o.margin_before_land_usd)}</th>`).join('')}</tr></tbody></table>`;
+  root.querySelector('#cp-reading').innerHTML = `<ul>
+    <li><b>A, villa loops</b> (${opts3[0].lots} lots): the capital-weekender product, most lots, most street per lot, tightest margins but fastest absorption at US$60-80,000 a lot. Two parallel streets make a loop so no one drives past everyone else's house.</li>
+    <li><b>B, finca lots</b> (${opts3[1].lots} lots): one spine, half the street, the diaspora-retiree product at US$100-150,000 a lot with room for a casita and fruit trees; best margin per dollar of infrastructure, slower sales.</li>
+    <li><b>C, mixed</b> (${opts3[2].lots} lots): villa lots near the plaza and park, finca lots behind, and the premium view lots on the crest of Parcela 2 that only exist if the north right of way is secured. Highest revenue; carries the extra north road.</li>
+    <li>In all three the plaza sits on the carretera outside the gate, 400 m from the village, so it can serve outsiders (mini-market, liquor store, café) without opening the residential streets; the park behind the gate is the buffer between the plaza and the homes; the garden reuses a greenhouse; trails start at the strip and climb to the mirador.</li>
+    <li>Costs are the biggest uncertainty: the per-lot figure is dominated by fixed items (wells, tank, treatment plant, clubhouse, plaza, gate). Phasing the clubhouse and plaza, or starting with septic per lot instead of a treatment plant, cuts the upfront by US$400,000-600,000.</li></ul>`;
+  show('C');
+  return map;
+}

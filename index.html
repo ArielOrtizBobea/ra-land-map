@@ -42,6 +42,9 @@
   @media (max-width: 900px) { #side { width: 250px; } #coords { left: 270px; } .leaflet-top.leaflet-left { left: 270px; } #layers { width: 230px; } }
   /* tabs + report pane */
   .tabs { display: flex; gap: 4px; margin: 0 0 8px; } .tab { padding: 5px 10px; border: 1px solid #bbb; border-radius: 5px 5px 0 0; background: #f2f2ee; cursor: pointer; font-size: 12px; } .tab.on { background: #fff; border-bottom-color: #fff; font-weight: 600; }
+  #concepts { position: absolute; inset: 10px; z-index: 1200; background: #fbfbf8; border-radius: 8px; box-shadow: 0 2px 10px #0003; overflow: auto; padding: 24px 32px; display: none; }
+  #concepts .tabs { position: sticky; top: 0; background: #fbfbf8; padding: 4px 0 8px; margin: -8px 0 8px; z-index: 5; }
+  #cp-map { height: 520px; border: 1px solid var(--line); border-radius: 4px; margin: 8px 0 10px; }
   #report { position: absolute; inset: 10px; z-index: 1200; background: #fbfbf8; border-radius: 8px; box-shadow: 0 2px 10px #0003; overflow: auto; padding: 24px 32px; display: none; }
   .report { max-width: 860px; margin: 0 auto; font-size: 14px; line-height: 1.55; } .report h1 { font-size: 24px; margin: 0 0 6px; } .report .lede { color: var(--muted); font-size: 15px; margin: 0 0 18px; }
   .report h2 { font-size: 16px; margin: 26px 0 8px; text-transform: none; letter-spacing: 0; color: var(--ink); border-bottom: 1px solid var(--line); padding-bottom: 4px; } .report h3 { font-size: 14px; margin: 14px 0 4px; }
@@ -61,7 +64,7 @@
 <div id="map"></div>
 
 <div id="side" class="panel">
-  <div class="tabs"><span class="tab on" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span></div>
+  <div class="tabs"><span class="tab on" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span></div>
   <h1>RA Land — Rancho Arriba</h1>
   <div class="sub">Finca at Los Quemados · San José de Ocoa, DR · planning portal v0.3</div>
   <div style="margin-top:8px">
@@ -95,7 +98,8 @@
   <div id="legend" class="panel"><h3>Legend</h3><div id="legendBody" class="cl"></div></div>
 </div>
 <div id="coords">move the mouse over the map</div>
-<div id="report"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab on" data-tab="report">Access road study</span></div><div id="reportBody">loading…</div></div>
+<div id="report"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab on" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span></div><div id="reportBody">loading…</div></div>
+<div id="concepts" class="reportpane"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab on" data-tab="concepts">Concept plans</span></div><div id="conceptsBody">loading…</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -156,6 +160,7 @@ const VEC = {
     try { L.geoJSON(await gj('pois'), { pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 5, color: '#6a3d9a', fillOpacity: .8 }).bindPopup(popup(f.properties.name || f.properties.kind, [['kind', f.properties.kind], ['value', f.properties.value]])) }).addTo(g); } catch (e) {}
     return g; },
   access_routes: async () => L.geoJSON(await gj('access_routes'), { filter: f => f.properties.kind === 'strip' || (f.properties.target === 'top of Parcela 2' && f.properties.design_grade_pct !== 20), style: f => ({ color: f.properties.kind === 'strip' ? '#ff00ff' : ({ 12: '#0571b0', 15: '#e08214', 20: '#7b3294' })[f.properties.design_grade_pct], weight: f.properties.kind === 'strip' ? 3 : 2.5, dashArray: f.properties.kind === 'strip' ? '6 4' : null, opacity: .9 }), onEachFeature: (f, l) => l.bindPopup(popup(f.properties.kind === 'strip' ? f.properties.label : `Alignment, design grade ${f.properties.design_grade_pct}%`, [['from', f.properties.start], ['to', f.properties.target], ['length', fmt(f.properties.length_m) + ' m'], ['climb', fmt(f.properties.gain_m) + ' m'], ['mean grade', f.properties.mean_grade_pct + ' %'], ['max grade', f.properties.max_grade_pct + ' %'], ['length steeper than 12 % / 15 %', `${f.properties.pct_length_over_12} % / ${f.properties.pct_length_over_15} %`]])) }),
+  concept_A: async () => makeConceptLayer(await gj('concept_A')), concept_B: async () => makeConceptLayer(await gj('concept_B')), concept_C: async () => makeConceptLayer(await gj('concept_C')),
   projects: async () => L.geoJSON(await gj('competitors'), { pointToLayer: (f, ll) => L.marker(ll, { icon: L.divIcon({ className: '', html: '<div style="background:#b5121b;color:#fff;border-radius:12px;padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px #0006">$ ' + f.properties.name.split('(')[0].slice(0, 26) + '</div>', iconAnchor: [8, 10] }) }).bindPopup(popup(f.properties.name, [['sector', f.properties.sector], ['lots (m²)', f.properties.lot_m2], ['price', f.properties.price], ['services', f.properties.services], ['position', f.properties.approx ? 'approximate (village anchor)' : 'verified'], ['source', `<a href="${f.properties.url}" target="_blank">listing</a>`], ['notes', f.properties.notes]])) }),
 };
 // menu definition: [key, label, on-by-default, swatch colour]
@@ -165,6 +170,7 @@ const MENU = [
   { title: 'Water', items: [['rivers', 'Rivers & streams (OSM)', true, '#1f78b4'], ['riparian', '30 m riparian strip (Ley 64-00, verify)', false, '#08306b'], ['dist_river', 'Distance to river bands', false, '#6baed6'], ['drainage_dem', 'DEM drainage lines', false, '#4292c6']] },
   { title: 'Roads & places', items: [['roads', 'Roads by surface (OSM)', true, '#000'], ['places', 'Villages & POIs', true, '#2b6cb0'], ['muni', 'Municipio boundary', true, '#222']] },
   { title: 'Structures', items: [['buildings_ms', 'Buildings — Microsoft footprints', true, '#7a1f1f'], ['buildings_osm', 'Buildings — OSM', false, '#f28e2b'], ['structure_density', 'Structure density (per km²)', false, '#e34a33']] },
+  { title: 'Concept layouts (see the Concept plans tab)', items: [['concept_A', 'A · Villa loops (49 lots)', false, '#fde68a'], ['concept_B', 'B · Finca lots (30 lots)', false, '#fdba74'], ['concept_C', 'C · Mixed + view lots (46 lots)', false, '#f9a8d4']] },
   { title: 'Access road study', items: [['slope_pct_window', 'Terrain slope % for road building (10 m)', false, '#fee08b'], ['access_routes', 'Candidate alignments (12 % blue, 15 % orange) + strip', true, '#0571b0']] },
   { title: 'Land cover', items: [['landcover', 'ESA WorldCover 2021 (10 m)', false, '#006400']] },
   { title: 'Market', items: [['projects', 'Nearby lot projects (listings)', true, '#b5121b']] },
@@ -281,7 +287,15 @@ document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBoun
     let slopeMeta = null; try { slopeMeta = await js('slope_pct_window'); } catch (e) {}
     rxMap = initRouteExplorer(body, A, await gj('access_routes'), { base: m => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(m), slope: slopeMeta ? { src: 'data/slope_pct_window.png', bounds: slopeMeta.bounds } : null, parcels: await gj('parcel_boundary') });
   } catch (e) { console.warn('report', e); }
-  setupTabs(() => { document.getElementById('report').style.display = 'none'; }, () => { document.getElementById('report').style.display = 'block'; if (rxMap) setTimeout(() => rxMap.invalidateSize(), 50); });
+  let cpMap = null;
+  try { const html = await (await fetch('report_concepts.html')).text(); document.getElementById('conceptsBody').innerHTML = html;
+    const summary = await js('concept_summary'); const layouts = {}; for (const k of ['A', 'B', 'C']) layouts[k] = await gj(`concept_${k}`);
+    cpMap = initConceptTab(document.getElementById('conceptsBody'), summary, layouts, { base: m => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(m), parcels: await gj('parcel_boundary') });
+  } catch (e) { console.warn('concepts', e); }
+  const panes = { report: document.getElementById('report'), concepts: document.getElementById('concepts') };
+  document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { const t = b.dataset.tab; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === t));
+    for (const [k, el] of Object.entries(panes)) el.style.display = k === t ? 'block' : 'none';
+    if (t === 'report' && rxMap) setTimeout(() => rxMap.invalidateSize(), 50); if (t === 'concepts' && cpMap) setTimeout(() => cpMap.invalidateSize(), 50); }));
   try { const A = await js('access_summary'); const best = t => A.routes.filter(r => r.target === 'top of Parcela 2' && r.design_grade_pct === t).sort((a, b) => a.length_m - b.length_m);
     document.getElementById('accessTbl').innerHTML = `<table class="kv"><tr><td>Straight up the strip</td><td>${fmt(A.strip.length_m)} m, +${fmt(A.strip.gain_m)} m, mean ${A.strip.mean_grade_pct} % (not drivable)</td></tr>` +
       [12, 15].map(t => best(t).map(r => `<tr><td>${r.start.slice(0, 1)} → top, design ${t} %</td><td>${fmt(r.length_m)} m, mean ${r.mean_grade_pct} %, max ${r.max_grade_pct} %</td></tr>`).join('')).join('') +
