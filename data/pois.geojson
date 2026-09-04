@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "pois",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "osm_id": "node/6639414085", "name": "Capilla San Francisco Javier", "kind": "amenity", "value": "place_of_worship" }, "geometry": { "type": "Point", "coordinates": [ -70.4235933, 18.7112 ] } },
+{ "type": "Feature", "properties": { "osm_id": "way/438360333", "kind": "leisure", "value": "pitch" }, "geometry": { "type": "Point", "coordinates": [ -70.336256318181825, 18.7633903 ] } },
+{ "type": "Feature", "properties": { "osm_id": "way/710001951", "kind": "amenity", "value": "grave_yard" }, "geometry": { "type": "Point", "coordinates": [ -70.454289285714282, 18.621747957142855 ] } },
+{ "type": "Feature", "properties": { "osm_id": "way/755425346", "kind": "leisure", "value": "pitch" }, "geometry": { "type": "Point", "coordinates": [ -70.430002942857143, 18.705591592857143 ] } }
+]
+}

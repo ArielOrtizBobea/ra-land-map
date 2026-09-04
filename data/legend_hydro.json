@@ -1,0 +1,1 @@
+{"dist_river":[{"value":0,"hex":"#08306b","name":"0-30 m (riparian strip)","alpha":200},{"value":1,"hex":"#2171b5","name":"30-100 m","alpha":160},{"value":2,"hex":"#6baed6","name":"100-300 m","alpha":120},{"value":3,"hex":"#c6dbef","name":"300-1000 m","alpha":80},{"value":4,"hex":"#ffffff","name":">1 km","alpha":0}]}

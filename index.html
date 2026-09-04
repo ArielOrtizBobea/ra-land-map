@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RA Land — Rancho Arriba portal</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+<style>
+  :root { --panel: #ffffffee; --ink: #1b1b1b; --muted: #666; --accent: #b5121b; --line: #e3e3e3; }
+  html, body { margin: 0; height: 100%; font: 13px/1.4 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); }
+  #map { position: absolute; inset: 0; background: #e4e7df; }
+  .panel { background: var(--panel); border-radius: 8px; box-shadow: 0 2px 10px #0003; z-index: 1000; }
+  #side { position: absolute; top: 10px; left: 10px; bottom: 10px; width: 320px; overflow: auto; padding: 12px 14px; }
+  #side h1 { font-size: 17px; margin: 0 0 2px; } h2 { font-size: 12px; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+  .sub { color: var(--muted); font-size: 12px; }
+  table.kv { width: 100%; border-collapse: collapse; } table.kv td { padding: 3px 0; border-bottom: 1px solid var(--line); vertical-align: top; } table.kv td:first-child { color: var(--muted); width: 55%; padding-right: 6px; }
+  .btn { display: inline-block; padding: 4px 8px; margin: 2px 4px 2px 0; border: 1px solid #bbb; border-radius: 5px; background: #fff; cursor: pointer; font-size: 12px; }
+  .btn.on { background: #ffe9a8; border-color: #d4a600; }
+  /* layer menu, top-right */
+  #right { position: absolute; top: 10px; right: 10px; bottom: 10px; width: 290px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
+  #layers { flex: 1 1 auto; min-height: 120px; overflow: auto; padding: 10px 12px; }
+  #layers h1 { font-size: 14px; margin: 0 0 6px; }
+  #layers .grp { margin: 8px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+  #layers label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; }
+  #layers label span.sw { width: 14px; height: 10px; border-radius: 2px; display: inline-block; border: 1px solid #0002; flex: none; }
+  #layers input { margin: 0; }
+  #layers .opac { margin-top: 8px; font-size: 11px; color: var(--muted); } #layers input[type=range] { width: 120px; vertical-align: middle; }
+  /* legend, bottom-right */
+  #legend { flex: 0 1 auto; max-height: 38%; overflow: auto; padding: 8px 10px; font-size: 12px; }
+  #legend .row { display: flex; align-items: center; gap: 6px; margin: 1px 0; } #legend .sw { width: 16px; height: 12px; border: 1px solid #0003; display: inline-block; flex: none; }
+  #legend h3 { margin: 4px 0 2px; font-size: 12px; }
+  #coords { position: absolute; left: 340px; bottom: 6px; background: var(--panel); padding: 3px 8px; border-radius: 5px; z-index: 1000; font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+  /* Leaflet's own top-left controls (zoom, draw) sit to the right of the side panel */
+  .leaflet-top.leaflet-left { left: 340px; }
+  #pano { width: 100%; height: 180px; }
+  .caveat, .cl { font-size: 11px; color: var(--muted); }
+  .popup h4 { margin: 0 0 4px; font-size: 13px; } .popup td { padding: 1px 6px 1px 0; vertical-align: top; }
+  .lbl { background: #fff9; border: 0; box-shadow: none; font-size: 10px; color: #7a4b00; font-weight: 600; }
+  .mult { mix-blend-mode: multiply; }
+  @media (max-width: 900px) { #side { width: 250px; } #coords { left: 270px; } .leaflet-top.leaflet-left { left: 270px; } #layers { width: 230px; } }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="side" class="panel">
+  <h1>RA Land — Rancho Arriba</h1>
+  <div class="sub">Finca at Los Quemados · San José de Ocoa, DR · planning portal v0.2</div>
+  <div style="margin-top:8px">
+    <span class="btn" id="goParcel">Go to parcel</span><span class="btn" id="goMuni">Municipio</span>
+    <span class="btn" id="measure">Measure</span><span class="btn" id="clearM">Clear</span>
+  </div>
+  <h2>Parcel (plano catastral 2026)</h2>
+  <div id="parcelTbl" class="cl">no parcel_stats.json yet — run make block name=parcel</div>
+  <h2>View from the parcel's highest point</h2>
+  <div class="cl">Max visible distance by direction: eye 10 m (orange) and 2 m (grey). Rings every 5 km, outer ring 25 km. Surface model: trees count as obstacles.</div>
+  <svg id="pano" viewBox="0 0 300 180"></svg>
+  <h2>Land cover (WorldCover 2021)</h2>
+  <table class="kv" id="lcTbl"></table>
+  <h2>Structures (Microsoft footprints)</h2>
+  <table class="kv" id="bTbl"></table>
+  <h2>Municipio terrain</h2>
+  <table class="kv" id="slTbl"></table>
+  <h2>Nearby lot projects (listings)</h2>
+  <div id="comp" class="cl"></div>
+  <h2>Notes</h2>
+  <div id="caveats" class="caveat"></div>
+  <div class="caveat" style="margin-top:8px">Basemaps: Esri Light Gray canvas, Esri World Imagery (© Esri, Vantor, Earthstar Geographics), IGN-JJHM Cartografía Base (live WMS), OpenStreetMap, OpenTopoMap. Sketch with the draw tools (top of the map) and export the shapes as GeoJSON.</div>
+  <div style="margin-top:6px"><span class="btn" id="exportDraw">Export drawn shapes</span></div>
+</div>
+
+<div id="right">
+  <div id="layers" class="panel"><h1>Layers</h1><div id="layerBody">loading…</div>
+    <div class="opac">Overlay opacity <input type="range" id="op" min="0" max="100" value="80"></div></div>
+  <div id="legend" class="panel"><h3>Legend</h3><div id="legendBody" class="cl"></div></div>
+</div>
+<div id="coords">move the mouse over the map</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
+<script src="contours_lod.js"></script>
+<script>
+const PARCEL_ID = '6642024034813_1_1_1_3';
+const UTM19 = "+proj=utm +zone=19 +datum=WGS84 +units=m +no_defs";
+const map = L.map('map', { preferCanvas: true, zoomControl: true }).setView([18.7195, -70.459], 15);
+map.createPane('rasters'); map.getPane('rasters').style.zIndex = 350;   // between basemap tiles and vector overlays
+L.control.scale({ imperial: true, metric: true, position: 'bottomleft' }).addTo(map);
+let parcelCenter = null, parcelLayer = null;
+
+// ---------- helpers ----------
+const fmt = (n, d = 0) => (n === null || n === undefined || isNaN(n)) ? '–' : Number(n).toLocaleString('en-US', { maximumFractionDigits: d });
+const dist = (a, b) => map.distance(a, b);
+function bearing(a, b) { const toR = Math.PI / 180, dL = (b[1] - a[1]) * toR, y = Math.sin(dL) * Math.cos(b[0] * toR), x = Math.cos(a[0] * toR) * Math.sin(b[0] * toR) - Math.sin(a[0] * toR) * Math.cos(b[0] * toR) * Math.cos(dL); return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360; }
+const popup = (title, rows) => `<div class="popup"><h4>${title}</h4><table>${rows.filter(r => r[1] !== undefined && r[1] !== null && r[1] !== '').map(r => `<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join('')}</table></div>`;
+async function gj(name) { const r = await fetch(`data/${name}.geojson`); if (!r.ok) throw new Error(name); return r.json(); }
+async function js(name) { const r = await fetch(`data/${name}.json`); if (!r.ok) throw new Error(name); return r.json(); }
+
+// ---------- basemaps ----------
+const BASES = {
+  grey: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20, maxNativeZoom: 16, attribution: 'Esri, HERE, Garmin, © OpenStreetMap contributors' }),
+  none: L.layerGroup([]),
+  esri: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri, Vantor, Earthstar Geographics' }),
+  ign: L.tileLayer.wms('https://mapservernyc301.mymapserver.com/qgisserver', { layers: 'doigncarto', format: 'image/png', transparent: false, version: '1.3.0', attribution: 'IGN-JJHM Cartografía Base', maxZoom: 19 }),
+  osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }),
+  topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '© OpenTopoMap (CC-BY-SA)' }),
+};
+let currentBase = 'grey'; BASES.grey.addTo(map);
+function setBase(k) { if (k === currentBase) return; map.removeLayer(BASES[currentBase]); BASES[k].addTo(map); BASES[k].bringToBack(); currentBase = k; }
+
+// ---------- layer registry ----------
+const LAYERS = {};          // key -> Leaflet layer (created at boot)
+const RASTER = new Set();   // keys that are image overlays (opacity slider)
+async function addRaster(key) {
+  try { const meta = await js(key); const lyr = L.imageOverlay(`data/${key}.png`, meta.bounds, { opacity: 0.8, interactive: false, pane: 'rasters', className: key === 'hillshade' ? 'mult' : '' }); LAYERS[key] = lyr; RASTER.add(key); } catch (e) { /* not generated */ }
+}
+const roadStyle = f => { const c = f.properties.surf_class, hw = f.properties.highway;
+  if (c === 'paved') return { color: '#000', weight: 3 }; if (c === 'paved (assumed)') return { color: '#555', weight: 2.5 };
+  if (c && c.startsWith('unpaved')) return { color: '#a0522d', weight: hw === 'track' ? 1.2 : 2, dashArray: '4 3' };
+  return { color: '#bbbbbb', weight: hw === 'service' ? 1 : 1.6 }; };
+const VEC = {
+  parcel: async () => { const l = L.geoJSON(await gj('parcel_boundary'), { style: { color: '#ff0000', weight: 3, fillColor: '#ff0000', fillOpacity: .06 }, onEachFeature: (f, ly) => { ly.bindTooltip(`${f.properties.name} · ${fmt(f.properties.area_ha, 2)} ha`, { sticky: true }); ly.bindPopup(popup(f.properties.name, [['label', f.properties.label], ['area (plan)', fmt(f.properties.plan_area_m2) + ' m²'], ['area (polygon)', `${fmt(f.properties.area_m2)} m² = ${fmt(f.properties.area_ha, 2)} ha = ${fmt(f.properties.area_acres, 1)} ac`], ['vertices', f.properties.vertices], ['source', f.properties.source]])); } });
+    parcelLayer = l; parcelCenter = l.getBounds().getCenter(); return l; },
+  contours: async () => makeContourLayer(map, { full: await gj('contours_10m'), outside: await gj('contours_10m_outside'), win: await gj('contours_5m_parcel') }),
+  muni: async () => L.geoJSON(await gj('muni'), { style: { color: '#222', weight: 2, dashArray: '8 5', fill: false } }),
+  rivers: async () => L.geoJSON(await gj('waterways'), { style: f => ({ color: '#1f78b4', weight: f.properties.waterway === 'river' ? 3 : 1.5 }), onEachFeature: (f, l) => l.bindPopup(popup(f.properties.name || '(unnamed)', [['type', f.properties.waterway]])) }),
+  riparian: async () => L.geoJSON(await gj('river_buffer30'), { style: { color: '#08306b', weight: 0, fillOpacity: .35 } }),
+  roads: async () => L.geoJSON(await gj('roads'), { style: roadStyle, onEachFeature: (f, l) => l.bindPopup(popup(f.properties.name || f.properties.ref || '(unnamed road)', [['class', f.properties.highway], ['surface tag', f.properties.surface || '(none)'], ['surface class', f.properties.surf_class], ['tracktype', f.properties.tracktype], ['id', f.properties.osm_id]])) }),
+  buildings_ms: async () => L.geoJSON(await gj('buildings_ms'), { style: { color: '#7a1f1f', weight: 0.8, fillOpacity: .5 }, onEachFeature: (f, l) => l.bindPopup(popup('Structure (Microsoft)', [['footprint', fmt(f.properties.area_m2) + ' m²'], ['confidence', f.properties.confidence]])) }),
+  buildings_osm: async () => L.geoJSON(await gj('buildings_osm'), { style: { color: '#f28e2b', weight: 1, fillOpacity: .4 }, onEachFeature: (f, l) => l.bindPopup(popup(f.properties.name || 'Building (OSM)', [['type', f.properties.building]])) }),
+  places: async () => { const g = L.featureGroup();
+    L.geoJSON(await gj('places'), { pointToLayer: (f, ll) => L.marker(ll).bindTooltip(f.properties.name, { permanent: true, direction: 'right', className: 'lbl' }).bindPopup(popup(f.properties.name, [['type', f.properties.place], ['population', f.properties.population]])) }).addTo(g);
+    try { L.geoJSON(await gj('pois'), { pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 5, color: '#6a3d9a', fillOpacity: .8 }).bindPopup(popup(f.properties.name || f.properties.kind, [['kind', f.properties.kind], ['value', f.properties.value]])) }).addTo(g); } catch (e) {}
+    return g; },
+  projects: async () => L.geoJSON(await gj('competitors'), { pointToLayer: (f, ll) => L.marker(ll, { icon: L.divIcon({ className: '', html: '<div style="background:#b5121b;color:#fff;border-radius:12px;padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px #0006">$ ' + f.properties.name.split('(')[0].slice(0, 26) + '</div>', iconAnchor: [8, 10] }) }).bindPopup(popup(f.properties.name, [['sector', f.properties.sector], ['lots (m²)', f.properties.lot_m2], ['price', f.properties.price], ['services', f.properties.services], ['position', f.properties.approx ? 'approximate (village anchor)' : 'verified'], ['source', `<a href="${f.properties.url}" target="_blank">listing</a>`], ['notes', f.properties.notes]])) }),
+};
+// menu definition: [key, label, on-by-default, swatch colour]
+const MENU = [
+  { title: 'Parcel', items: [['parcel', 'Boundary — plano 2026, parcela _3', true, '#ff0000'], [`viewshed_parcel_${PARCEL_ID}`, 'Viewshed from highest point, eye 10 m', false, '#ff7f00'], ['viewshed_10m', 'Viewshed from lower field, eye 10 m', false, '#ffd92f'], ['viewshed_2m', 'Viewshed from lower field, eye 2 m', false, '#ffd92f']] },
+  { title: 'Terrain', items: [['contours', 'Contours — detail follows zoom', true, '#6b3f00'], ['hillshade', 'Hillshade', false, '#888'], ['elevation', 'Elevation tint', false, '#7fbc41'], ['slope_class', 'Slope classes', false, '#fdae61'], ['aspect', 'Aspect', false, '#91bfdb']] },
+  { title: 'Water', items: [['rivers', 'Rivers & streams (OSM)', true, '#1f78b4'], ['riparian', '30 m riparian strip (Ley 64-00, verify)', false, '#08306b'], ['dist_river', 'Distance to river bands', false, '#6baed6'], ['drainage_dem', 'DEM drainage lines', false, '#4292c6']] },
+  { title: 'Roads & places', items: [['roads', 'Roads by surface (OSM)', true, '#000'], ['places', 'Villages & POIs', true, '#2b6cb0'], ['muni', 'Municipio boundary', true, '#222']] },
+  { title: 'Structures', items: [['buildings_ms', 'Buildings — Microsoft footprints', true, '#7a1f1f'], ['buildings_osm', 'Buildings — OSM', false, '#f28e2b'], ['structure_density', 'Structure density (per km²)', false, '#e34a33']] },
+  { title: 'Land cover', items: [['landcover', 'ESA WorldCover 2021 (10 m)', false, '#006400']] },
+  { title: 'Market', items: [['projects', 'Nearby lot projects (listings)', true, '#b5121b']] },
+];
+const LEG = {};
+function legendRows(lut) { return lut.map(r => `<div class="row"><span class="sw" style="background:${r.hex}"></span>${r.name}</div>`).join(''); }
+function updateLegend() {
+  const on = k => LAYERS[k] && map.hasLayer(LAYERS[k]); let h = '';
+  if (on('slope_class')) h += '<h3>Slope (deg)</h3>' + legendRows(LEG.slope || []);
+  if (on('aspect')) h += '<h3>Aspect</h3>' + legendRows(LEG.aspect || []);
+  if (on('landcover')) h += '<h3>Land cover</h3>' + legendRows(LEG.landcover || []);
+  if (on('dist_river')) h += '<h3>Distance to mapped river</h3>' + legendRows(LEG.dist_river || []);
+  if (on(`viewshed_parcel_${PARCEL_ID}`)) h += '<h3>Viewshed</h3><div class="row"><span class="sw" style="background:#ff7f00"></span>visible from the parcel\'s highest point</div>';
+  if (on('viewshed_2m') || on('viewshed_10m')) h += '<div class="row"><span class="sw" style="background:#ffd92f"></span>visible from the lower field</div>';
+  if (on('elevation')) h += '<h3>Elevation</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#276419,#7fbc41,#e6f5d0,#fde0ef,#de77ae,#8e0152,#fff)"></span>600 → 1,950 m</div>';
+  if (on('structure_density')) h += '<h3>Structures / km²</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#fee8c8,#fdbb84,#e34a33,#7f0000)"></span>0 → 400+</div>';
+  if (on('drainage_dem')) h += '<h3>DEM drainage (catchment)</h3><div class="row"><span class="sw" style="background:#9ecae1"></span>&gt;13 ha</div><div class="row"><span class="sw" style="background:#4292c6"></span>&gt;54 ha</div><div class="row"><span class="sw" style="background:#08519c"></span>&gt;270 ha</div>';
+  if (on('roads')) h += '<h3>Roads</h3><div class="row"><span class="sw" style="background:#000"></span>paved (OSM tag)</div><div class="row"><span class="sw" style="background:#555"></span>paved (assumed from class)</div><div class="row"><span class="sw" style="background:#a0522d"></span>unpaved / dirt / track</div><div class="row"><span class="sw" style="background:#bbb"></span>surface unknown</div>';
+  if (on('contours')) h += '<h3>Contours (Copernicus 30 m)</h3><div class="row"><span class="sw" style="background:#a0742b"></span>minor line</div><div class="row"><span class="sw" style="background:#6b3f00"></span>major line, labelled</div><div class="cl">' + LAYERS.contours.describe + '</div>';
+  document.getElementById('legendBody').innerHTML = h || 'Turn on an overlay to see its legend.';
+}
+function buildMenu() {
+  let h = '<div class="grp">Basemap</div>' + [['grey', 'Light grey map (Esri canvas)'], ['none', 'Plain grey, no basemap'], ['esri', 'Satellite (Esri)'], ['ign', 'IGN-JJHM official map (contours, roads, buildings)'], ['osm', 'OpenStreetMap'], ['topo', 'OpenTopoMap']].map(([k, l]) => `<label><input type="radio" name="base" value="${k}" ${k === currentBase ? 'checked' : ''}> ${l}</label>`).join('');
+  for (const g of MENU) {
+    const items = g.items.filter(it => LAYERS[it[0]]); if (!items.length) continue;
+    h += `<div class="grp">${g.title}</div>` + items.map(([k, l, on, c]) => `<label><input type="checkbox" data-key="${k}" ${on ? 'checked' : ''}> <span class="sw" style="background:${c}"></span>${l}</label>`).join('');
+  }
+  const body = document.getElementById('layerBody'); body.innerHTML = h;
+  body.querySelectorAll('input[name=base]').forEach(r => r.addEventListener('change', e => setBase(e.target.value)));
+  body.querySelectorAll('input[type=checkbox]').forEach(cb => { const k = cb.dataset.key; if (cb.checked) LAYERS[k].addTo(map);
+    cb.addEventListener('change', e => { e.target.checked ? LAYERS[k].addTo(map) : map.removeLayer(LAYERS[k]); if (!RASTER.has(k) && LAYERS[k].bringToFront) LAYERS[k].bringToFront(); updateLegend(); }); });
+  updateLegend();
+}
+document.getElementById('op').addEventListener('input', e => { const v = e.target.value / 100; RASTER.forEach(k => LAYERS[k].setOpacity(v)); });
+
+// ---------- side panel ----------
+function fillSummary(S, PSt) {
+  const p = PSt ? Object.entries(PSt)[0] : null;
+  if (p) { const [k, v] = p; document.getElementById('parcelTbl').innerHTML = `<table class="kv"><tr><td colspan=2><b>${k}</b><br><span class="cl">${v.label || ''}</span></td></tr>
+    <tr><td>Area (polygon / plan)</td><td>${fmt(v.area_ha, 2)} ha = ${fmt(v.area_acres, 1)} ac / ${fmt(v.plan_area_m2)} m²</td></tr>
+    <tr><td>Elevation min–max (mean)</td><td>${fmt(v.elev_min_m)}–${fmt(v.elev_max_m)} m (${fmt(v.elev_mean_m)})</td></tr>
+    <tr><td>Slope mean / p90 / max</td><td>${fmt(v.slope_mean_deg, 1)}° / ${fmt(v.slope_p90_deg, 1)}° / ${fmt(v.slope_max_deg, 1)}°</td></tr>
+    <tr><td>Slope classes</td><td>${Object.entries(v.slope_pct || {}).filter(([a, b]) => b > 0).map(([a, b]) => `${a}°: ${fmt(b, 1)}%`).join(' · ')}</td></tr>
+    <tr><td>Structures inside (MS)</td><td>${fmt(v.n_structures_ms)} · ${fmt(v.structures_footprint_m2)} m² footprint</td></tr>
+    <tr><td>Nearest river / paved-or-secondary road</td><td>${fmt(v.dist_river_m)} m / ${fmt(v.dist_paved_or_secondary_road_m)} m</td></tr>
+    <tr><td>Highest point (UTM 19N)</td><td>${fmt(v.highest_point_utm?.[0])} E, ${fmt(v.highest_point_utm?.[1])} N</td></tr>
+    <tr><td>View from highest point, eye 10 m</td><td>${fmt(v.vantage_visible_km2, 1)} km² visible · ${fmt(v.vantage_open_arc_deg)}° open arc · to ${fmt(v.vantage_max_km, 1)} km</td></tr></table>`; }
+  const lcM = (S && S.landcover_pct && S.landcover_pct.municipio) || {}; const lcP = (p && p[1].landcover_pct) || {};
+  const keys = new Set([...Object.keys(lcP), ...Object.keys(lcM)]);
+  document.getElementById('lcTbl').innerHTML = `<tr><td></td><td>parcel · municipio</td></tr>` + [...keys].map(k => `<tr><td>${k}</td><td>${fmt(lcP[k] ?? 0, 1)} · ${fmt(lcM[k] ?? 0, 1)} %</td></tr>`).join('');
+  const b = (S && S.structures_ms) || {};
+  document.getElementById('bTbl').innerHTML = [['inside the parcel', p ? fmt(p[1].n_structures_ms) : '–'], ['in the study area (municipio + 1.5 km)', fmt(b.n_in_aoi)]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  if (S) document.getElementById('slTbl').innerHTML = `<tr><td>Area</td><td>${fmt(S.municipio.area_km2)} km²</td></tr><tr><td>Elevation</td><td>${fmt(S.muni_elev_range_m[0])}–${fmt(S.muni_elev_range_m[1])} m</td></tr>` + Object.entries(S.muni_slope_pct || {}).map(([k, v]) => `<tr><td>slope ${k}°</td><td>${fmt(v, 1)} %</td></tr>`).join('');
+  if (S) document.getElementById('comp').innerHTML = (S.competitors || []).map(c => `<div style="margin:3px 0"><b>${c.name}</b><br>${c.sector} · lots ${c.lot_m2} · ${c.price}</div>`).join('');
+  if (S) document.getElementById('caveats').innerHTML = (S.caveats || []).map(c => `• ${c}`).join('<br>') + `<br>generated ${S.generated}`;
+}
+function drawPano(p10, p2) {
+  const svg = document.getElementById('pano'); const cx = 150, cy = 92, R = 80, maxKm = 25; let h = '';
+  for (let k = 5; k <= 25; k += 5) h += `<circle cx="${cx}" cy="${cy}" r="${R * k / maxKm}" fill="none" stroke="#ccc" stroke-width="0.6"/>`;
+  const path = (p, fill) => { const pts = p.map(d => { const r = R * Math.min(d.max_km, maxKm) / maxKm, a = (d.az - 90) * Math.PI / 180; return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }); return `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="#333" stroke-width="0.5"/>`; };
+  h += path(p10, '#ff7f00aa') + path(p2, '#88888899');
+  h += `<text x="${cx}" y="${cy - R - 3}" font-size="9" text-anchor="middle">N</text><text x="${cx + R + 6}" y="${cy + 3}" font-size="9">E</text><text x="${cx}" y="${cy + R + 10}" font-size="9" text-anchor="middle">S</text><text x="${cx - R - 12}" y="${cy + 3}" font-size="9">W</text>`;
+  svg.innerHTML = h;
+}
+
+// ---------- mouse coords ----------
+let EG = null;
+function elevAt(lat, lon) { if (!EG) return null; const c = Math.floor((lon - EG.xmin) / EG.dx), r = Math.floor((EG.ymax - lat) / EG.dy); if (c < 0 || r < 0 || c >= EG.ncols || r >= EG.nrows) return null; return EG.values[r * EG.ncols + c]; }
+map.on('mousemove', e => { const [x, y] = proj4('EPSG:4326', UTM19, [e.latlng.lng, e.latlng.lat]); const z = elevAt(e.latlng.lat, e.latlng.lng);
+  const rel = parcelCenter ? ` | ${fmt(dist(parcelCenter, e.latlng))} m from parcel centre, bearing ${fmt(bearing([parcelCenter.lat, parcelCenter.lng], [e.latlng.lat, e.latlng.lng]))}°` : '';
+  document.getElementById('coords').textContent = `${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)} | UTM19N ${x.toFixed(0)} E ${y.toFixed(0)} N | elev ${z === null || z === undefined ? '–' : z + ' m'}${rel}`; });
+
+// ---------- measure tool ----------
+let measuring = false, mPts = [], mLine = null, mMarkers = [];
+const mBtn = document.getElementById('measure');
+mBtn.onclick = () => { measuring = !measuring; mBtn.classList.toggle('on', measuring); map.getContainer().style.cursor = measuring ? 'crosshair' : ''; };
+document.getElementById('clearM').onclick = () => { mPts = []; if (mLine) map.removeLayer(mLine); mLine = null; mMarkers.forEach(m => map.removeLayer(m)); mMarkers = []; };
+map.on('click', e => { if (!measuring) return; mPts.push(e.latlng); mMarkers.push(L.circleMarker(e.latlng, { radius: 4, color: '#ff5500' }).addTo(map));
+  if (mLine) map.removeLayer(mLine); mLine = L.polyline(mPts, { color: '#ff5500', weight: 2 }).addTo(map);
+  let len = 0; for (let i = 1; i < mPts.length; i++) len += dist(mPts[i - 1], mPts[i]);
+  let area = 0; if (mPts.length > 2) { const pts = mPts.map(p => proj4('EPSG:4326', UTM19, [p.lng, p.lat])); for (let i = 0; i < pts.length; i++) { const j = (i + 1) % pts.length; area += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]; } area = Math.abs(area) / 2; }
+  mLine.bindTooltip(`${fmt(len)} m${area ? ` · polygon ${fmt(area / 10000, 2)} ha = ${fmt(area / 4046.86, 2)} acres` : ''}`, { permanent: true, direction: 'top' }).openTooltip(); });
+
+// ---------- draw tool ----------
+const drawn = new L.FeatureGroup().addTo(map);
+map.addControl(new L.Control.Draw({ position: 'topleft', edit: { featureGroup: drawn }, draw: { circle: false, circlemarker: false, marker: true, polyline: true, polygon: { allowIntersection: false, showArea: true, metric: ['ha', 'm'] }, rectangle: true } }));
+const saveDrawn = () => { try { localStorage.setItem('ra_drawn', JSON.stringify(drawn.toGeoJSON())); } catch (x) {} };
+map.on(L.Draw.Event.CREATED, e => { drawn.addLayer(e.layer); saveDrawn(); }); map.on(L.Draw.Event.EDITED, saveDrawn); map.on(L.Draw.Event.DELETED, saveDrawn);
+try { const saved = localStorage.getItem('ra_drawn'); if (saved) L.geoJSON(JSON.parse(saved)).eachLayer(l => drawn.addLayer(l)); } catch (x) {}
+document.getElementById('exportDraw').onclick = () => { const blob = new Blob([JSON.stringify(drawn.toGeoJSON(), null, 1)], { type: 'application/geo+json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sketch.geojson'; a.click(); };
+
+document.getElementById('goParcel').onclick = () => { if (parcelLayer) map.fitBounds(parcelLayer.getBounds().pad(0.25)); };
+document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBounds(LAYERS.muni.getBounds()); };
+
+// ---------- boot ----------
+(async () => {
+  for (const f of ['legend_terrain', 'legend_hydro', 'legend_landcover']) { try { Object.assign(LEG, await js(f)); } catch (e) {} }
+  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'viewshed_10m', 'viewshed_2m', `viewshed_parcel_${PARCEL_ID}`, 'dist_river', 'drainage_dem', 'landcover', 'structure_density']) await addRaster(k);
+  for (const [k, mk] of Object.entries(VEC)) { try { LAYERS[k] = await mk(); } catch (e) { console.warn('layer missing', k); } }
+  buildMenu();
+  let S = null, PSt = null; try { S = await js('site_summary'); } catch (e) {} try { PSt = await js('parcel_stats'); } catch (e) {}
+  fillSummary(S, PSt);
+  try { const pv = await js(`panorama_vantage_${PARCEL_ID}`); drawPano(pv.eye10, pv.eye2); } catch (e) { try { drawPano(await js('panorama_eye10m'), await js('panorama_eye2m')); } catch (x) {} }
+  try { EG = await js('elev_grid'); } catch (e) {}
+  if (parcelLayer) map.fitBounds(parcelLayer.getBounds().pad(0.25));
+  map.on('overlayadd', () => Object.keys(LAYERS).forEach(k => { if (!RASTER.has(k) && LAYERS[k].bringToFront && map.hasLayer(LAYERS[k])) LAYERS[k].bringToFront(); }));
+})();
+</script>
+</body>
+</html>

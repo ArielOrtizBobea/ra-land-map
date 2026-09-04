@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "site_square",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "label": "Placeholder ~100 acres (636 m square) centred on the site" }, "geometry": { "type": "MultiPolygon", "coordinates": [ [ [ [ -70.463594485781073, 18.715409803431406 ], [ -70.46364394662946, 18.72115740671142 ], [ -70.457611719198283, 18.721204445372361 ], [ -70.457562462020391, 18.715456826608406 ], [ -70.463594485781073, 18.715409803431406 ] ] ] ] } }
+]
+}

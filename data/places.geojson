@@ -1,0 +1,22 @@
+{
+"type": "FeatureCollection",
+"name": "places",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "osm_id": "node/3161122682", "name": "Rancho Arriba", "place": "town", "population": "10476" }, "geometry": { "type": "Point", "coordinates": [ -70.4465103, 18.6970365 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/3733293794", "name": "Juan Adrián", "place": "village", "population": "4082" }, "geometry": { "type": "Point", "coordinates": [ -70.3357625, 18.7641951 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/3733296758", "name": "Los Morones", "place": "village" }, "geometry": { "type": "Point", "coordinates": [ -70.4148377, 18.7255255 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/3733299052", "name": "La Peñita", "place": "hamlet" }, "geometry": { "type": "Point", "coordinates": [ -70.3989698, 18.7259692 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/3977958205", "name": "El Quemado", "place": "village" }, "geometry": { "type": "Point", "coordinates": [ -70.4606749, 18.7128505 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/5047149216", "name": "Arroyo Blanco", "place": "village" }, "geometry": { "type": "Point", "coordinates": [ -70.4289391, 18.7038299 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14095913452", "name": "Arroyo Bonito", "place": "hamlet" }, "geometry": { "type": "Point", "coordinates": [ -70.5298977, 18.711451 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14103336181", "name": "Nizao", "place": "village" }, "geometry": { "type": "Point", "coordinates": [ -70.4580018, 18.6371949 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14103350439", "name": "Monte Negro", "place": "hamlet" }, "geometry": { "type": "Point", "coordinates": [ -70.4890725, 18.7032266 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14103382765", "name": "Arabia", "place": "locality" }, "geometry": { "type": "Point", "coordinates": [ -70.5479005, 18.7035416 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14103391583", "name": "La Vigía", "place": "village" }, "geometry": { "type": "Point", "coordinates": [ -70.4336249, 18.7389897 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14103396526", "name": "Quitasueño", "place": "hamlet" }, "geometry": { "type": "Point", "coordinates": [ -70.5039094, 18.7208979 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14103400932", "name": "Mahoma", "place": "hamlet" }, "geometry": { "type": "Point", "coordinates": [ -70.3947795, 18.6716618 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14104252442", "name": "La Yautía", "place": "hamlet" }, "geometry": { "type": "Point", "coordinates": [ -70.3702132, 18.7518172 ] } },
+{ "type": "Feature", "properties": { "osm_id": "node/14104279786", "name": "Rincón de Yuboa", "place": "village" }, "geometry": { "type": "Point", "coordinates": [ -70.3583106, 18.7943412 ] } }
+]
+}

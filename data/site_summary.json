@@ -1,0 +1,139 @@
+{
+  "muni_slope_pct": {
+    "0-5": 13,
+    "5-10": 11.8,
+    "10-15": 18.3,
+    "15-25": 35.1,
+    "25-35": 16.7,
+    ">35": 5.1
+  },
+  "muni_elev_range_m": [609, 1964],
+  "site_elev_m": 703.6,
+  "site_slope_deg": 1.6,
+  "site_aspect_deg": 82,
+  "square_slope_deg": {
+    "mean": 5,
+    "p90": 13.1,
+    "max": 19
+  },
+  "square_elev_range_m": [701.5, 754.6],
+  "r1km_slope_pct_over_15": 24.2,
+  "viewshed_eye2m": {
+    "visible_km2_total": 15.1,
+    "visible_km2_beyond_2km": 13.8,
+    "max_visible_km": 24.6,
+    "open_arc_deg": 190
+  },
+  "viewshed_eye10m": {
+    "visible_km2_total": 23.1,
+    "visible_km2_beyond_2km": 20.5,
+    "max_visible_km": 24.6,
+    "open_arc_deg": 220
+  },
+  "site_dist_nearest_mapped_river_m": 631,
+  "site_dist_named_rivers_m": {
+    "Río Nizao": 641,
+    "Río Banilejo": 2674,
+    "Río Yuna": 5291,
+    "Río Malo": 7424,
+    "Arroyo La Cigua": 8145,
+    "Río Yuboa": 9397,
+    "Río Maimón": 9514,
+    "Río Mahoma": 10749,
+    "Rio Ocoa": 11313,
+    "Río Ocoa": 11313,
+    "Ocoa": 11313,
+    "Rio Nizao": 13538
+  },
+  "site_upstream_catchment_ha": 1.5,
+  "site_dist_any_mapped_road_m": 67,
+  "site_dist_paved_road_m": 2600,
+  "site_dist_town_centre_m": 2784,
+  "site_dist_santo_domingo_km_straight": 62,
+  "structures_ms": {
+    "n_in_aoi": 8873,
+    "n_within_250m": 40,
+    "n_within_500m": 235,
+    "n_within_1km": 648,
+    "nearest_m": 96,
+    "n_large_over_200m2_within_1km": 73
+  },
+  "landcover_pct": {
+    "municipio": {
+      "Tree cover": 78.3,
+      "Shrubland": 0.1,
+      "Grassland": 20,
+      "Cropland": 0.3,
+      "Built-up": 0.8,
+      "Bare/sparse": 0.4,
+      "Water": 0
+    },
+    "placeholder_square": {
+      "Tree cover": 40.2,
+      "Grassland": 49.4,
+      "Cropland": 1.4,
+      "Built-up": 8.9,
+      "Bare/sparse": 0.1
+    },
+    "radius_1km": {
+      "Tree cover": 59.4,
+      "Grassland": 28.9,
+      "Cropland": 1,
+      "Built-up": 7.9,
+      "Bare/sparse": 2.8,
+      "Water": 0
+    }
+  },
+  "competitors": [
+    {
+      "name": "Proyecto Ecotur<c3><ad>stico Arroyo Blanco (Aval Group RD)",
+      "sector": "Arroyo Blanco, Rancho Arriba",
+      "lot_m2": "500+ (villas from 1,000)",
+      "price": "US$70/m<c2><b2>; 0% financing 6<e2><80><93>12 mo or 2%/yr; HOA US$50<e2><80><93>100/mo",
+      "approx": true
+    },
+    {
+      "name": "Proyecto de solares, Corredor Padre Luis Quinn (Aval Group RD)",
+      "sector": "Nizao district, 14 km from Ocoa town",
+      "lot_m2": "200<e2><80><93>1,000",
+      "price": "RD$2,000<e2><80><93>3,000 per m<c2><b2> as listed (verify) <e2><89><88> US$33<e2><80><93>50/m<c2><b2>; cash only until titles issued",
+      "approx": true
+    },
+    {
+      "name": "Monta<c3><b1>a M<c3><a1>gica (eco-tourism villas)",
+      "sector": "Rancho Arriba (paraje TBD)",
+      "lot_m2": "500<e2><80><93>2,000",
+      "price": "not published",
+      "approx": true
+    },
+    {
+      "name": "Solares Rancho Arriba (encuentra24 listing)",
+      "sector": "Rancho Arriba (sector n/a)",
+      "lot_m2": "500 min",
+      "price": "RD$1,800/m<c2><b2> (~US$30/m<c2><b2>), water included",
+      "approx": true
+    },
+    {
+      "name": "Proyecto ecotur<c3><ad>stico 41,435 m<c2><b2> Ruta Panor<c3><a1>mica (listing)",
+      "sector": "Ruta Panor<c3><a1>mica (n/a)",
+      "lot_m2": "n/a",
+      "price": "n/a",
+      "approx": true
+    }
+  ],
+  "site": {
+    "lat": 18.7183071452465,
+    "lon": -70.4606031534073,
+    "utm_e": 346001.5,
+    "utm_n": 2070289.2,
+    "crs": "EPSG:32619",
+    "placeholder_acres": 100
+  },
+  "municipio": {
+    "name": "Rancho Arriba",
+    "province": "San José de Ocoa",
+    "area_km2": 205.1
+  },
+  "generated": "2026-09-03 21:52",
+  "caveats": ["Elevation from Copernicus GLO-30: 30 m surface model (includes tree canopy), vertical accuracy ~2-4 m; contours are planning-grade only", "Viewsheds use the same surface model, so trees on neighbouring land count as obstacles; bare-earth views could be wider", "Rivers/roads from OpenStreetMap (incomplete in rural DR); buildings from Microsoft ML footprints (misses small/covered structures)", "Competitor locations are village anchors, not verified project boundaries"]
+}

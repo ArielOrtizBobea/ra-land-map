@@ -1,0 +1,39 @@
+{
+  "6642024034813_1-1-1_3": {
+    "label": "Parcela resultante _3 (plano individual 2026-07)",
+    "area_m2": 104520.8,
+    "plan_area_m2": 104744.43,
+    "area_ha": 10.45,
+    "area_acres": 25.8,
+    "elev_min_m": 701.5,
+    "elev_max_m": 838.3,
+    "elev_mean_m": 710.9,
+    "slope_mean_deg": 4.9,
+    "slope_p90_deg": 16,
+    "slope_max_deg": 25,
+    "slope_pct": {
+      "0-5": 70.9,
+      "5-10": 10.1,
+      "10-15": 8,
+      "15-25": 11,
+      "25-35": 0,
+      ">35": 0
+    },
+    "landcover_pct": {
+      "Tree cover": 55.5,
+      "Grassland": 41.7,
+      "Built-up": 2.6,
+      "Bare/sparse": 0.2
+    },
+    "n_structures_ms": 17,
+    "structures_footprint_m2": 5633,
+    "dist_river_m": 534,
+    "dist_paved_or_secondary_road_m": 2408,
+    "dist_any_road_m": 0,
+    "highest_point_utm": [346511.2, 2070879.3],
+    "vantage_visible_km2": 69.5,
+    "vantage_visible_km2_beyond_2km": 65,
+    "vantage_open_arc_deg": 290,
+    "vantage_max_km": 25.1
+  }
+}
