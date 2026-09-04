@@ -236,6 +236,47 @@
     "finger2-access": 19.3,
     "finger2 (812 m contour)": 2.2
    }
+  },
+  {
+   "option": "F",
+   "title": "F \u00b7 Rim & core: one ring of villa lots around the edge of the flat zone, a one-way shared lane inside them, an inner walking loop, and the flat centre as commons",
+   "lots": 32,
+   "sellable_m2": 44318,
+   "revenue_usd": 2792820,
+   "road_m": 1048,
+   "row_m2": 7266,
+   "green_m2": 14507,
+   "plaza_m2": 3893,
+   "path_m": 1210,
+   "costs": {
+    "Concrete roads (6 m, 15 cm)": 320340,
+    "Ditches, curbs, culverts": 94320,
+    "Earthworks, road base": 110073,
+    "Underground electricity + transformers": 151280,
+    "Street lighting": 31440,
+    "Water: wells, tank, treatment, network": 178936,
+    "Sewer network + treatment plant": 168600,
+    "Telecom / fibre ducts": 18864,
+    "Pedestrian / golf-cart paths (2.5 m concrete)": 54450,
+    "Gate, guardhouse, perimeter fence": 103580,
+    "Clubhouse + pool uphill, playground, dog park": 260000,
+    "Lagoon with fountain (lined, pumps)": 115000,
+    "Commercial plaza (shell, 300 m2 built)": 165000,
+    "Engineering, survey, permits, legal": 222188,
+    "Contingency (15 %)": 299111
+   },
+   "cost_total_usd": 2293182,
+   "cost_per_lot_usd": 71662,
+   "cost_per_sellable_m2_usd": 51.7,
+   "margin_before_land_usd": 499638,
+   "lot_min_m2": 816,
+   "lot_max_m2": 2457,
+   "lot_mean_m2": 1385,
+   "road_grades": {
+    "ring (one-way shared lane)": 3.6,
+    "entry": 5.1,
+    "club-access": 10.8
+   }
   }
  ]
 }

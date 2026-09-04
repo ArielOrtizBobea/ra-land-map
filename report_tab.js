@@ -108,6 +108,7 @@ const CP_STYLE = f => { const p = f.properties, k = p.kind;
   if (k === 'club') return { color: '#9d174d', weight: 1.2, fillColor: '#fbcfe8', fillOpacity: .8 };
   if (k === 'water') return { color: '#1e40af', weight: 1, fillColor: '#93c5fd', fillOpacity: .85 };
   if (k === 'path') return { color: '#065f46', weight: 2.5, dashArray: '2 4' };
+  if (k === 'core') return { color: '#3f6212', weight: 1.2, fillColor: '#d9f99d', fillOpacity: .7 };
   if (k === 'chute') return { color: '#14532d', weight: 0.8, fillColor: '#14532d', fillOpacity: .35 };
   if (k === 'culdesac') return { color: '#111', weight: 1.5, fillColor: '#e5e7eb', fillOpacity: .9 };
   if (k === 'green') return { color: '#9ca3af', weight: .8, fillColor: '#e5e7eb', fillOpacity: .6 };
@@ -115,7 +116,7 @@ const CP_STYLE = f => { const p = f.properties, k = p.kind;
   if (k === 'road') return { color: '#111', weight: (p.carriageway_m || 6) >= 6 ? 5 : 3.5, opacity: .9 };
   if (k === 'trail') return { color: '#166534', weight: 2, dashArray: '3 5' };
   return { color: '#333', weight: 1 }; };
-const CP_POINT = (f, ll) => f.properties.kind === 'gate' ? L.circleMarker(ll, { radius: 7, color: '#000', fillColor: 'red', fillOpacity: 1 }) : L.circleMarker(ll, { radius: 6, color: '#000', fillColor: '#fff', fillOpacity: 1 });
+const CP_POINT = (f, ll) => f.properties.kind === 'gate' ? L.circleMarker(ll, { radius: 7, color: '#000', fillColor: 'red', fillOpacity: 1 }) : f.properties.kind === 'hub' ? L.marker(ll, { icon: L.divIcon({ className: '', html: '<div style="font-size:22px;line-height:22px">★</div>', iconAnchor: [11, 11] }) }) : L.circleMarker(ll, { radius: 6, color: '#000', fillColor: '#fff', fillOpacity: 1 });
 function cpPopup(f) { const p = f.properties, fmt = n => Number(n).toLocaleString('en-US');
   if (p.kind === 'lot') return `<div class="popup"><h4>Lot ${p.id}</h4><table><tr><td>area</td><td><b>${fmt(p.area_m2)} m²</b></td></tr><tr><td>price</td><td><b>US$ ${fmt(p.price_usd)}</b> (${p.price_usd_m2}/m², ${p.tier})</td></tr><tr><td>ground slope</td><td>${p.slope_pct} %</td></tr><tr><td>elevation</td><td>${p.elev_m} m</td></tr></table></div>`;
   if (p.kind === 'road') return `<div class="popup"><h4>Street (${p.class})</h4><table><tr><td>length</td><td>${p.length_m} m</td></tr><tr><td>carriageway / right of way</td><td>${p.carriageway_m} / ${p.row_m} m</td></tr><tr><td>grade mean / max</td><td>${p.grade_mean_pct} / ${p.grade_max_pct} %</td></tr>${p.note ? `<tr><td>note</td><td>${p.note}</td></tr>` : ''}</table></div>`;
@@ -169,6 +170,7 @@ function initConceptTab(root, summary, layouts, opts) {
     <li><b>A, villa loops</b> (${opts3[0].lots} lots): the capital-weekender product, most lots, most street per lot, tightest margins but fastest absorption at US$60-80,000 a lot. Two parallel streets make a loop so no one drives past everyone else's house.</li>
     <li><b>B, finca lots</b> (${opts3[1].lots} lots): one spine, half the street, the diaspora-retiree product at US$100-150,000 a lot with room for a casita and fruit trees; best margin per dollar of infrastructure, slower sales.</li>
     <li><b>C, mixed</b> (${opts3[2].lots} lots): villa lots near the plaza and park, finca lots behind, and the premium view lots on the crest of Parcela 2 that only exist if the north right of way is secured. Highest revenue; carries the extra north road.</li>
+    ${opts3[5] ? `<li><b>F, rim &amp; core</b> (${opts3[5].lots} lots): the retiree-friendly plan, every lot private at the back and every front door on a level loop that reaches the commons without a car; fewer lots than A and a large core to maintain, so it lives on a premium and a well-run HOA.</li>` : ''}
     ${opts3[4] ? `<li><b>E, Batey hub + ridge fingers</b> (${opts3[4].lots} lots): D's field plus the contour lanes on Parcela 2 with estate view lots at a 25 % premium; the most distinctive product and the highest per-lot price, but it depends on the north right of way and on a hillside road built to the study's grades.</li>` : ''}
     ${opts3[3] ? `<li><b>D, pocket neighbourhoods</b> (${opts3[3].lots} lots): three clusters of homes around their own shared green on a narrow 5 m loop lane, denser near the plaza and looser uphill, finca lots along the meandering spine between them, 20 m green buffers, and a pedestrian and golf-cart path linking park, greens, garden, clubhouse and trailhead. The retirement-community pattern: slow lanes, level lots, social greens; fewer lots than A, priced with a small cluster premium.</li>` : ''}
     <li>In all three the plaza sits on the carretera outside the gate, 400 m from the village, so it can serve outsiders (mini-market, liquor store, café) without opening the residential streets; the park behind the gate is the buffer between the plaza and the homes; the garden reuses a greenhouse; trails start at the strip and climb to the mirador.</li>
