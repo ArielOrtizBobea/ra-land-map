@@ -318,6 +318,47 @@
     "entry": 2.5,
     "club-access": 13.6
    }
+  },
+  {
+   "option": "H",
+   "title": "H \u00b7 Courtyard villas with hot tubs: G's perimeter lane and rim, a car-free inner row on the south half with shared parking courts, the core in three outdoor rooms, and a schematic villa, gallery, patio, hot tub and carport on every lot",
+   "lots": 40,
+   "sellable_m2": 51246,
+   "revenue_usd": 3184974,
+   "road_m": 1333,
+   "row_m2": 9092,
+   "green_m2": 50314,
+   "plaza_m2": 3309,
+   "path_m": 1283,
+   "costs": {
+    "Concrete roads (6 m, 15 cm)": 403380,
+    "Ditches, curbs, culverts": 119970,
+    "Earthworks, road base": 131421,
+    "Underground electricity + transformers": 182630,
+    "Street lighting": 39990,
+    "Water: wells, tank, treatment, network": 191656,
+    "Sewer network + treatment plant": 203975,
+    "Telecom / fibre ducts": 23994,
+    "Pedestrian / golf-cart paths (2.5 m concrete)": 57735,
+    "Gate, guardhouse, perimeter fence": 103580,
+    "Clubhouse + pool uphill, playground, dog park": 260000,
+    "Lagoon with fountain (lined, pumps)": 115000,
+    "Commercial plaza (shell, 300 m2 built)": 165000,
+    "Engineering, survey, permits, legal": 244833,
+    "Contingency (15 %)": 336475
+   },
+   "cost_total_usd": 2579639,
+   "cost_per_lot_usd": 64491,
+   "cost_per_sellable_m2_usd": 50.3,
+   "margin_before_land_usd": 605335,
+   "lot_min_m2": 826,
+   "lot_max_m2": 2435,
+   "lot_mean_m2": 1281,
+   "road_grades": {
+    "perimeter lane (one-way, rear access)": 10.0,
+    "entry": 2.5,
+    "club-access": 13.6
+   }
   }
  ]
 }

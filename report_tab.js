@@ -108,7 +108,13 @@ const CP_STYLE = f => { const p = f.properties, k = p.kind;
   if (k === 'club') return { color: '#9d174d', weight: 1.2, fillColor: '#fbcfe8', fillOpacity: .8 };
   if (k === 'water') return { color: '#1e40af', weight: 1, fillColor: '#93c5fd', fillOpacity: .85 };
   if (k === 'path') return { color: '#065f46', weight: 2.5, dashArray: '2 4' };
-  if (k === 'core') return { color: '#3f6212', weight: 1.2, fillColor: '#d9f99d', fillOpacity: .7 };
+  if (k === 'core' || k === 'room') return { color: '#3f6212', weight: 1.2, fillColor: '#d9f99d', fillOpacity: .6 };
+  if (k === 'court') return { color: '#334155', weight: 1, fillColor: '#cbd5e1', fillOpacity: .85 };
+  if (k === 'house') return { color: '#111827', weight: 0.8, fillColor: '#6b7280', fillOpacity: .9 };
+  if (k === 'porch') return { color: '#78716c', weight: 0.5, fillColor: '#e7e5e4', fillOpacity: .9 };
+  if (k === 'patio') return { color: '#a16207', weight: 0.5, fillColor: '#fef3c7', fillOpacity: .9 };
+  if (k === 'hottub') return { color: '#0c4a6e', weight: 0.8, fillColor: '#38bdf8', fillOpacity: 1 };
+  if (k === 'carport' || k === 'driveway') return { color: '#374151', weight: 0.5, fillColor: '#9ca3af', fillOpacity: .9 };
   if (k === 'chute') return { color: '#14532d', weight: 0.8, fillColor: '#14532d', fillOpacity: .35 };
   if (k === 'culdesac') return { color: '#111', weight: 1.5, fillColor: '#e5e7eb', fillOpacity: .9 };
   if (k === 'green') return { color: '#9ca3af', weight: .8, fillColor: '#e5e7eb', fillOpacity: .6 };
@@ -145,7 +151,7 @@ function makeContourLayer2m(fc) {
 function initConceptTab(root, summary, layouts, opts) {
   const host = root.querySelector('#cp-map'); if (!host || !summary) return null;
   const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { maximumFractionDigits: d });
-  const map = L.map('cp-map', { preferCanvas: true, attributionControl: false, maxZoom: 20 }); opts.base(map);
+  const map = L.map('cp-map', { preferCanvas: true, attributionControl: false, maxZoom: 21 }); opts.base(map);
   if (opts.contours) makeContourLayer2m(opts.contours).addTo(map);
   if (opts.parcels) L.geoJSON(opts.parcels, { style: { color: '#ff0000', weight: 2.5, fill: false } }).addTo(map);
   if (opts.reference) L.geoJSON(opts.reference, { style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: .25, dashArray: '4 3' }, onEachFeature: (f, l) => l.bindTooltip(f.properties.label || 'reference', { permanent: true, direction: 'center', className: 'lbl' }) }).addTo(map);
@@ -170,6 +176,7 @@ function initConceptTab(root, summary, layouts, opts) {
     <li><b>A, villa loops</b> (${opts3[0].lots} lots): the capital-weekender product, most lots, most street per lot, tightest margins but fastest absorption at US$60-80,000 a lot. Two parallel streets make a loop so no one drives past everyone else's house.</li>
     <li><b>B, finca lots</b> (${opts3[1].lots} lots): one spine, half the street, the diaspora-retiree product at US$100-150,000 a lot with room for a casita and fruit trees; best margin per dollar of infrastructure, slower sales.</li>
     <li><b>C, mixed</b> (${opts3[2].lots} lots): villa lots near the plaza and park, finca lots behind, and the premium view lots on the crest of Parcela 2 that only exist if the north right of way is secured. Highest revenue; carries the extra north road.</li>
+    ${opts3[7] ? `<li><b>H, courtyard villas with hot tubs</b> (${opts3[7].lots} lots): the synthesis: cars only on the perimeter, a car-free inner row, three commons rooms, and a villa type whose patio keeps the hot tub private while the gallery faces the neighbours. Lot count back near A with the community structure of the rim plans.</li>` : ''}
     ${opts3[6] ? `<li><b>G, rim &amp; core with the road outside</b> (${opts3[6].lots} lots): the cleanest separation of cars and people, every front on the commons and every garage on the perimeter; the perimeter lane is longer and touches 10 % at the north end, and the lot count is a little lower than F.</li>` : ''}
     ${opts3[5] ? `<li><b>F, rim &amp; core</b> (${opts3[5].lots} lots): the retiree-friendly plan, every lot private at the back and every front door on a level loop that reaches the commons without a car; fewer lots than A and a large core to maintain, so it lives on a premium and a well-run HOA.</li>` : ''}
     ${opts3[4] ? `<li><b>E, Batey hub + ridge fingers</b> (${opts3[4].lots} lots): D's field plus the contour lanes on Parcela 2 with estate view lots at a 25 % premium; the most distinctive product and the highest per-lot price, but it depends on the north right of way and on a hillside road built to the study's grades.</li>` : ''}

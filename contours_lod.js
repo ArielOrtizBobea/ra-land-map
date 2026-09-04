@@ -18,9 +18,11 @@ function makeContourLayer(map, sets, opts = {}) {
   }
   function render() {
     grp.clearLayers(); const z = map.getZoom(), b = map.getBounds().pad(0.1);
-    if (z <= 12) addSet(sets.full, f => f.properties.level % 50 === 0, f => f.properties.level % 100 === 0, 0.7);
-    else if (z === 13) { addSet(sets.full, f => f.properties.level % 20 === 0, f => f.properties.level % 100 === 0, 0.7); addLabels(sets.full, 100, b, 40); }
-    else if (z === 14) { addSet(sets.full, () => true, f => f.properties.level % 50 === 0, 0.6); addLabels(sets.full, 50, b, 60); }
+    const full = sets.full || null;
+    const lowSets = full ? [[full, 1]] : [[sets.outside, 1], [sets.win, 10]];   // without the full set, the window's 5 m lines stand in at 10 m spacing
+    if (z <= 12) for (const [fc, st] of lowSets) addSet(fc, f => f.properties.level % 50 === 0, f => f.properties.level % 100 === 0, 0.7);
+    else if (z === 13) { for (const [fc, st] of lowSets) addSet(fc, f => f.properties.level % 20 === 0, f => f.properties.level % 100 === 0, 0.7); addLabels(full || sets.outside, 100, b, 40); }
+    else if (z === 14) { for (const [fc, st] of lowSets) addSet(fc, f => f.properties.level % st === 0, f => f.properties.level % 50 === 0, 0.6); addLabels(full || sets.outside, 50, b, 60); }
     else { addSet(sets.outside, () => true, f => f.properties.level % 50 === 0, 0.7); addSet(sets.win, () => true, f => f.properties.level % 25 === 0, z >= 16 ? 1 : 0.8);
       addLabels(sets.outside, 50, b, 50); addLabels(sets.win, z >= 17 ? 10 : 25, b, z >= 17 ? 120 : 60); }
   }
