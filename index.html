@@ -48,7 +48,13 @@
   table.rep { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 13px; font-variant-numeric: tabular-nums; } table.rep th, table.rep td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; } table.rep th { background: #f1f1ec; font-weight: 600; }
   .report figure { margin: 14px 0; } .report img { max-width: 100%; border: 1px solid var(--line); border-radius: 4px; } .report figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .report ul, .report ol { padding-left: 20px; } .report li { margin: 4px 0; }
-  #report .tabs { position: sticky; top: 0; background: #fbfbf8; padding: 4px 0 8px; margin: -8px 0 8px; }
+  #report .tabs { position: sticky; top: 0; background: #fbfbf8; padding: 4px 0 8px; margin: -8px 0 8px; z-index: 5; }
+  .rx-controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin: 6px 0 10px; font-size: 13px; } .rx-controls select { font: inherit; padding: 3px 6px; }
+  #rx-map { height: 440px; border: 1px solid var(--line); border-radius: 4px; margin-bottom: 10px; }
+  #rx-profile { width: 100%; height: 250px; display: block; margin: 6px 0; }
+  #rx-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 11px; color: var(--muted); margin-bottom: 10px; } #rx-legend i { display: inline-block; width: 14px; height: 10px; margin-right: 5px; vertical-align: middle; border: 1px solid #0002; }
+  .rx-bar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; margin: 8px 0 4px; border: 1px solid var(--line); } .rx-bar span { display: block; height: 100%; }
+  .rx-verdict { margin: 4px 0 12px; }
 </style>
 </head>
 <body>
@@ -269,8 +275,13 @@ document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBoun
   if (PSt) { const box = document.getElementById('panos'); box.innerHTML = '';
     for (const n of Object.keys(PSt)) { try { const pv = await js(`panorama_vantage_${idOf(n)}`); const id = 'pano_' + idOf(n); box.insertAdjacentHTML('beforeend', `<div class="cl"><b>${n.replace('6642024034813_1-1-1', 'parcel')}</b></div><svg id="${id}" viewBox="0 0 300 180" style="width:100%;height:170px"></svg>`); drawPano(pv.eye10, pv.eye2, id); } catch (e) {} } }
   try { EG = await js('elev_grid'); } catch (e) {}
-  try { const html = await (await fetch('report_access.html')).text(); document.getElementById('reportBody').innerHTML = html; renderAccessReport(document.getElementById('reportBody'), await js('access_summary'), f => `data/${f}.jpg`); } catch (e) { console.warn('report', e); }
-  setupTabs(() => { document.getElementById('report').style.display = 'none'; }, () => { document.getElementById('report').style.display = 'block'; });
+  let rxMap = null;
+  try { const html = await (await fetch('report_access.html')).text(); document.getElementById('reportBody').innerHTML = html; const A = await js('access_summary'); const body = document.getElementById('reportBody');
+    renderAccessReport(body, A, f => `data/${f}.jpg`);
+    let slopeMeta = null; try { slopeMeta = await js('slope_pct_window'); } catch (e) {}
+    rxMap = initRouteExplorer(body, A, await gj('access_routes'), { base: m => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(m), slope: slopeMeta ? { src: 'data/slope_pct_window.png', bounds: slopeMeta.bounds } : null, parcels: await gj('parcel_boundary') });
+  } catch (e) { console.warn('report', e); }
+  setupTabs(() => { document.getElementById('report').style.display = 'none'; }, () => { document.getElementById('report').style.display = 'block'; if (rxMap) setTimeout(() => rxMap.invalidateSize(), 50); });
   try { const A = await js('access_summary'); const best = t => A.routes.filter(r => r.target === 'top of Parcela 2' && r.design_grade_pct === t).sort((a, b) => a.length_m - b.length_m);
     document.getElementById('accessTbl').innerHTML = `<table class="kv"><tr><td>Straight up the strip</td><td>${fmt(A.strip.length_m)} m, +${fmt(A.strip.gain_m)} m, mean ${A.strip.mean_grade_pct} % (not drivable)</td></tr>` +
       [12, 15].map(t => best(t).map(r => `<tr><td>${r.start.slice(0, 1)} → top, design ${t} %</td><td>${fmt(r.length_m)} m, mean ${r.mean_grade_pct} %, max ${r.max_grade_pct} %</td></tr>`).join('')).join('') +
