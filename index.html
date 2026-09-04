@@ -52,11 +52,11 @@
     <span class="btn" id="goParcel">Go to parcel</span><span class="btn" id="goMuni">Municipio</span>
     <span class="btn" id="measure">Measure</span><span class="btn" id="clearM">Clear</span>
   </div>
-  <h2>Parcel (plano catastral 2026)</h2>
+  <h2>Parcels (plano catastral 2026)</h2>
   <div id="parcelTbl" class="cl">no parcel_stats.json yet — run make block name=parcel</div>
-  <h2>View from the parcel's highest point</h2>
+  <h2>View from each parcel's highest point</h2>
   <div class="cl">Max visible distance by direction: eye 10 m (orange) and 2 m (grey). Rings every 5 km, outer ring 25 km. Surface model: trees count as obstacles.</div>
-  <svg id="pano" viewBox="0 0 300 180"></svg>
+  <div id="panos"><svg id="pano" viewBox="0 0 300 180"></svg></div>
   <h2>Land cover (WorldCover 2021)</h2>
   <table class="kv" id="lcTbl"></table>
   <h2>Structures (Microsoft footprints)</h2>
@@ -83,7 +83,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 <script src="contours_lod.js"></script>
 <script>
-const PARCEL_ID = '6642024034813_1_1_1_3';
+const idOf = n => n.replace(/[^A-Za-z0-9]/g, '_');
+let PSt = null;
 const UTM19 = "+proj=utm +zone=19 +datum=WGS84 +units=m +no_defs";
 const map = L.map('map', { preferCanvas: true, zoomControl: true }).setView([18.7195, -70.459], 15);
 map.createPane('rasters'); map.getPane('rasters').style.zIndex = 350;   // between basemap tiles and vector overlays
@@ -138,7 +139,7 @@ const VEC = {
 };
 // menu definition: [key, label, on-by-default, swatch colour]
 const MENU = [
-  { title: 'Parcel', items: [['parcel', 'Boundary — plano 2026, parcela _3', true, '#ff0000'], [`viewshed_parcel_${PARCEL_ID}`, 'Viewshed from highest point, eye 10 m', false, '#ff7f00'], ['viewshed_10m', 'Viewshed from lower field, eye 10 m', false, '#ffd92f'], ['viewshed_2m', 'Viewshed from lower field, eye 2 m', false, '#ffd92f']] },
+  { title: 'Parcels', items: [['parcel', 'Boundaries — plano 2026 (both parcels)', true, '#ff0000'], ['viewshed_10m', 'Viewshed from lower field of _3, eye 10 m', false, '#ffd92f'], ['viewshed_2m', 'Viewshed from lower field of _3, eye 2 m', false, '#ffd92f']] },
   { title: 'Terrain', items: [['contours', 'Contours — detail follows zoom', true, '#6b3f00'], ['hillshade', 'Hillshade', false, '#888'], ['elevation', 'Elevation tint', false, '#7fbc41'], ['slope_class', 'Slope classes', false, '#fdae61'], ['aspect', 'Aspect', false, '#91bfdb']] },
   { title: 'Water', items: [['rivers', 'Rivers & streams (OSM)', true, '#1f78b4'], ['riparian', '30 m riparian strip (Ley 64-00, verify)', false, '#08306b'], ['dist_river', 'Distance to river bands', false, '#6baed6'], ['drainage_dem', 'DEM drainage lines', false, '#4292c6']] },
   { title: 'Roads & places', items: [['roads', 'Roads by surface (OSM)', true, '#000'], ['places', 'Villages & POIs', true, '#2b6cb0'], ['muni', 'Municipio boundary', true, '#222']] },
@@ -154,8 +155,8 @@ function updateLegend() {
   if (on('aspect')) h += '<h3>Aspect</h3>' + legendRows(LEG.aspect || []);
   if (on('landcover')) h += '<h3>Land cover</h3>' + legendRows(LEG.landcover || []);
   if (on('dist_river')) h += '<h3>Distance to mapped river</h3>' + legendRows(LEG.dist_river || []);
-  if (on(`viewshed_parcel_${PARCEL_ID}`)) h += '<h3>Viewshed</h3><div class="row"><span class="sw" style="background:#ff7f00"></span>visible from the parcel\'s highest point</div>';
-  if (on('viewshed_2m') || on('viewshed_10m')) h += '<div class="row"><span class="sw" style="background:#ffd92f"></span>visible from the lower field</div>';
+  if (Object.keys(LAYERS).some(k => k.startsWith('viewshed_parcel_') && on(k))) h += '<h3>Parcel vantage viewshed</h3><div class="row"><span class="sw" style="background:#ff7f00"></span>visible from the parcel\'s highest point (eye 10 m)</div>';
+  if (on('viewshed_2m') || on('viewshed_10m')) h += '<div class="row"><span class="sw" style="background:#ffd92f"></span>visible from the lower field of _3</div>';
   if (on('elevation')) h += '<h3>Elevation</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#276419,#7fbc41,#e6f5d0,#fde0ef,#de77ae,#8e0152,#fff)"></span>600 → 1,950 m</div>';
   if (on('structure_density')) h += '<h3>Structures / km²</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#fee8c8,#fdbb84,#e34a33,#7f0000)"></span>0 → 400+</div>';
   if (on('drainage_dem')) h += '<h3>DEM drainage (catchment)</h3><div class="row"><span class="sw" style="background:#9ecae1"></span>&gt;13 ha</div><div class="row"><span class="sw" style="background:#4292c6"></span>&gt;54 ha</div><div class="row"><span class="sw" style="background:#08519c"></span>&gt;270 ha</div>';
@@ -165,6 +166,7 @@ function updateLegend() {
 }
 function buildMenu() {
   let h = '<div class="grp">Basemap</div>' + [['grey', 'Light grey map (Esri canvas)'], ['none', 'Plain grey, no basemap'], ['esri', 'Satellite (Esri)'], ['ign', 'IGN-JJHM official map (contours, roads, buildings)'], ['osm', 'OpenStreetMap'], ['topo', 'OpenTopoMap']].map(([k, l]) => `<label><input type="radio" name="base" value="${k}" ${k === currentBase ? 'checked' : ''}> ${l}</label>`).join('');
+  if (PSt) MENU[0].items.splice(1, 0, ...Object.keys(PSt).map(n => [`viewshed_parcel_${idOf(n)}`, `Viewshed from highest point of ${n.replace('6642024034813_1-1-1', 'parcel')}, eye 10 m`, false, '#ff7f00']));
   for (const g of MENU) {
     const items = g.items.filter(it => LAYERS[it[0]]); if (!items.length) continue;
     h += `<div class="grp">${g.title}</div>` + items.map(([k, l, on, c]) => `<label><input type="checkbox" data-key="${k}" ${on ? 'checked' : ''}> <span class="sw" style="background:${c}"></span>${l}</label>`).join('');
@@ -180,26 +182,26 @@ document.getElementById('op').addEventListener('input', e => { const v = e.targe
 // ---------- side panel ----------
 function fillSummary(S, PSt) {
   const p = PSt ? Object.entries(PSt)[0] : null;
-  if (p) { const [k, v] = p; document.getElementById('parcelTbl').innerHTML = `<table class="kv"><tr><td colspan=2><b>${k}</b><br><span class="cl">${v.label || ''}</span></td></tr>
-    <tr><td>Area (polygon / plan)</td><td>${fmt(v.area_ha, 2)} ha = ${fmt(v.area_acres, 1)} ac / ${fmt(v.plan_area_m2)} m²</td></tr>
+  if (PSt) document.getElementById('parcelTbl').innerHTML = Object.entries(PSt).map(([k, v]) => `<table class="kv" style="margin-bottom:10px"><tr><td colspan=2><b>${k}</b><br><span class="cl">${v.label || ''}</span></td></tr>
+    <tr><td>Area (polygon / plan)</td><td>${fmt(v.area_ha, 2)} ha = ${fmt(v.area_acres, 1)} ac / ${v.plan_area_m2 ? fmt(v.plan_area_m2) + ' m²' : 'no plan area yet'}</td></tr>
     <tr><td>Elevation min–max (mean)</td><td>${fmt(v.elev_min_m)}–${fmt(v.elev_max_m)} m (${fmt(v.elev_mean_m)})</td></tr>
     <tr><td>Slope mean / p90 / max</td><td>${fmt(v.slope_mean_deg, 1)}° / ${fmt(v.slope_p90_deg, 1)}° / ${fmt(v.slope_max_deg, 1)}°</td></tr>
     <tr><td>Slope classes</td><td>${Object.entries(v.slope_pct || {}).filter(([a, b]) => b > 0).map(([a, b]) => `${a}°: ${fmt(b, 1)}%`).join(' · ')}</td></tr>
     <tr><td>Structures inside (MS)</td><td>${fmt(v.n_structures_ms)} · ${fmt(v.structures_footprint_m2)} m² footprint</td></tr>
     <tr><td>Nearest river / paved-or-secondary road</td><td>${fmt(v.dist_river_m)} m / ${fmt(v.dist_paved_or_secondary_road_m)} m</td></tr>
     <tr><td>Highest point (UTM 19N)</td><td>${fmt(v.highest_point_utm?.[0])} E, ${fmt(v.highest_point_utm?.[1])} N</td></tr>
-    <tr><td>View from highest point, eye 10 m</td><td>${fmt(v.vantage_visible_km2, 1)} km² visible · ${fmt(v.vantage_open_arc_deg)}° open arc · to ${fmt(v.vantage_max_km, 1)} km</td></tr></table>`; }
-  const lcM = (S && S.landcover_pct && S.landcover_pct.municipio) || {}; const lcP = (p && p[1].landcover_pct) || {};
-  const keys = new Set([...Object.keys(lcP), ...Object.keys(lcM)]);
-  document.getElementById('lcTbl').innerHTML = `<tr><td></td><td>parcel · municipio</td></tr>` + [...keys].map(k => `<tr><td>${k}</td><td>${fmt(lcP[k] ?? 0, 1)} · ${fmt(lcM[k] ?? 0, 1)} %</td></tr>`).join('');
+    <tr><td>View from highest point, eye 10 m</td><td>${fmt(v.vantage_visible_km2, 1)} km² visible · ${fmt(v.vantage_open_arc_deg)}° open arc · to ${fmt(v.vantage_max_km, 1)} km</td></tr></table>`).join('');
+  const lcM = (S && S.landcover_pct && S.landcover_pct.municipio) || {}; const ps = PSt ? Object.values(PSt) : [];
+  const keys = new Set([...ps.flatMap(x => Object.keys(x.landcover_pct || {})), ...Object.keys(lcM)]);
+  document.getElementById('lcTbl').innerHTML = `<tr><td></td><td>${ps.map((x, i) => 'parcel ' + (i + 1)).join(' · ')} · municipio</td></tr>` + [...keys].map(k => `<tr><td>${k}</td><td>${ps.map(x => fmt((x.landcover_pct || {})[k] ?? 0, 1)).join(' · ')} · ${fmt(lcM[k] ?? 0, 1)} %</td></tr>`).join('');
   const b = (S && S.structures_ms) || {};
-  document.getElementById('bTbl').innerHTML = [['inside the parcel', p ? fmt(p[1].n_structures_ms) : '–'], ['in the study area (municipio + 1.5 km)', fmt(b.n_in_aoi)]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  document.getElementById('bTbl').innerHTML = [...ps.map((x, i) => [`inside parcel ${i + 1}`, fmt(x.n_structures_ms)]), ['in the study area (municipio + 1.5 km)', fmt(b.n_in_aoi)]].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
   if (S) document.getElementById('slTbl').innerHTML = `<tr><td>Area</td><td>${fmt(S.municipio.area_km2)} km²</td></tr><tr><td>Elevation</td><td>${fmt(S.muni_elev_range_m[0])}–${fmt(S.muni_elev_range_m[1])} m</td></tr>` + Object.entries(S.muni_slope_pct || {}).map(([k, v]) => `<tr><td>slope ${k}°</td><td>${fmt(v, 1)} %</td></tr>`).join('');
   if (S) document.getElementById('comp').innerHTML = (S.competitors || []).map(c => `<div style="margin:3px 0"><b>${c.name}</b><br>${c.sector} · lots ${c.lot_m2} · ${c.price}</div>`).join('');
   if (S) document.getElementById('caveats').innerHTML = (S.caveats || []).map(c => `• ${c}`).join('<br>') + `<br>generated ${S.generated}`;
 }
-function drawPano(p10, p2) {
-  const svg = document.getElementById('pano'); const cx = 150, cy = 92, R = 80, maxKm = 25; let h = '';
+function drawPano(p10, p2, elId = 'pano') {
+  const svg = document.getElementById(elId); const cx = 150, cy = 92, R = 80, maxKm = 25; let h = '';
   for (let k = 5; k <= 25; k += 5) h += `<circle cx="${cx}" cy="${cy}" r="${R * k / maxKm}" fill="none" stroke="#ccc" stroke-width="0.6"/>`;
   const path = (p, fill) => { const pts = p.map(d => { const r = R * Math.min(d.max_km, maxKm) / maxKm, a = (d.az - 90) * Math.PI / 180; return `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`; }); return `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="#333" stroke-width="0.5"/>`; };
   h += path(p10, '#ff7f00aa') + path(p2, '#88888899');
@@ -239,12 +241,15 @@ document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBoun
 // ---------- boot ----------
 (async () => {
   for (const f of ['legend_terrain', 'legend_hydro', 'legend_landcover']) { try { Object.assign(LEG, await js(f)); } catch (e) {} }
-  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'viewshed_10m', 'viewshed_2m', `viewshed_parcel_${PARCEL_ID}`, 'dist_river', 'drainage_dem', 'landcover', 'structure_density']) await addRaster(k);
+  try { PSt = await js('parcel_stats'); } catch (e) {}
+  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'viewshed_10m', 'viewshed_2m', 'dist_river', 'drainage_dem', 'landcover', 'structure_density']) await addRaster(k);
+  if (PSt) for (const n of Object.keys(PSt)) await addRaster(`viewshed_parcel_${idOf(n)}`);
   for (const [k, mk] of Object.entries(VEC)) { try { LAYERS[k] = await mk(); } catch (e) { console.warn('layer missing', k); } }
   buildMenu();
-  let S = null, PSt = null; try { S = await js('site_summary'); } catch (e) {} try { PSt = await js('parcel_stats'); } catch (e) {}
+  let S = null; try { S = await js('site_summary'); } catch (e) {}
   fillSummary(S, PSt);
-  try { const pv = await js(`panorama_vantage_${PARCEL_ID}`); drawPano(pv.eye10, pv.eye2); } catch (e) { try { drawPano(await js('panorama_eye10m'), await js('panorama_eye2m')); } catch (x) {} }
+  if (PSt) { const box = document.getElementById('panos'); box.innerHTML = '';
+    for (const n of Object.keys(PSt)) { try { const pv = await js(`panorama_vantage_${idOf(n)}`); const id = 'pano_' + idOf(n); box.insertAdjacentHTML('beforeend', `<div class="cl"><b>${n.replace('6642024034813_1-1-1', 'parcel')}</b></div><svg id="${id}" viewBox="0 0 300 180" style="width:100%;height:170px"></svg>`); drawPano(pv.eye10, pv.eye2, id); } catch (e) {} } }
   try { EG = await js('elev_grid'); } catch (e) {}
   if (parcelLayer) map.fitBounds(parcelLayer.getBounds().pad(0.25));
   map.on('overlayadd', () => Object.keys(LAYERS).forEach(k => { if (!RASTER.has(k) && LAYERS[k].bringToFront && map.hasLayer(LAYERS[k])) LAYERS[k].bringToFront(); }));

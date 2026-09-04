@@ -35,5 +35,39 @@
     "vantage_visible_km2_beyond_2km": 65,
     "vantage_open_arc_deg": 290,
     "vantage_max_km": 25.1
+  },
+  "Parcela 2": {
+    "label": "Second parcel from the DWG (block 910876): wooded hillside NE of _3; catastral designation to confirm",
+    "area_m2": 74427.6,
+    "plan_area_m2": null,
+    "area_ha": 7.44,
+    "area_acres": 18.4,
+    "elev_min_m": 721,
+    "elev_max_m": 842.3,
+    "elev_mean_m": 787.2,
+    "slope_mean_deg": 16.4,
+    "slope_p90_deg": 21.1,
+    "slope_max_deg": 25.6,
+    "slope_pct": {
+      "0-5": 1.2,
+      "5-10": 5.2,
+      "10-15": 26.7,
+      "15-25": 66.3,
+      "25-35": 0.6,
+      ">35": 0
+    },
+    "landcover_pct": {
+      "Tree cover": 100
+    },
+    "n_structures_ms": 0,
+    "structures_footprint_m2": 0,
+    "dist_river_m": 877,
+    "dist_paved_or_secondary_road_m": 2721,
+    "dist_any_road_m": 137,
+    "highest_point_utm": [346451.2, 2070929.3],
+    "vantage_visible_km2": 68.8,
+    "vantage_visible_km2_beyond_2km": 64.1,
+    "vantage_open_arc_deg": 280,
+    "vantage_max_km": 25
   }
 }
