@@ -17,7 +17,7 @@
      "id": "304760349243",
      "expediente": "6642024034813-07",
      "parcel_ha": 28.25,
-     "overlap_ha": 1.37
+     "overlap_ha": 1.36
     }
    ],
    "area_ha": 1.37,
@@ -45,52 +45,27 @@
      "layer": "historic",
      "id": "328",
      "parcel_ha": 185.92,
-     "overlap_ha": 28.36
+     "overlap_ha": 29.01
     },
     {
      "layer": "historic",
      "id": "332-A-1",
      "parcel_ha": 17.7,
-     "overlap_ha": 6.46
+     "overlap_ha": 6.49
     },
     {
      "layer": "approved",
      "id": "304760331910",
      "expediente": "6642024034813-07",
      "parcel_ha": 39.75,
-     "overlap_ha": 1.57
+     "overlap_ha": 1.45
     },
     {
      "layer": "approved",
      "id": "304760349243",
      "expediente": "6642024034813-07",
      "parcel_ha": 28.25,
-     "overlap_ha": 1.52
-    },
-    {
-     "layer": "historic",
-     "id": "332-A-2",
-     "parcel_ha": 18.15,
-     "overlap_ha": 0.31
-    },
-    {
-     "layer": "historic",
-     "id": "330",
-     "parcel_ha": 5.51,
-     "overlap_ha": 0.08
-    },
-    {
-     "layer": "approved",
-     "id": "304760131359",
-     "expediente": "6642024034813-07",
-     "parcel_ha": 10.47,
-     "overlap_ha": 0.05
-    },
-    {
-     "layer": "historic",
-     "id": "332-A-6",
-     "parcel_ha": 10.22,
-     "overlap_ha": 0.05
+     "overlap_ha": 1.43
     }
    ],
    "area_ha": 45.0,
