@@ -101,12 +101,18 @@ function initRouteExplorer(root, A, routesFC, opts) {
 
 // ---------- concept layouts tab ----------
 const CP_STYLE = f => { const p = f.properties, k = p.kind;
-  if (k === 'lot') return { color: '#7c4a03', weight: 1, fillColor: ({ 'base': '#fde68a', 'vista/alto (+10 %)': '#fdba74', 'pendiente 12-22 % (-15 %)': '#d9f99d', 'lote con vista (+25 %)': '#f9a8d4' })[p.tier] || '#fde68a', fillOpacity: .75 };
+  if (k === 'lot') return { color: '#7c4a03', weight: 1, fillColor: ({ 'base': '#fde68a', 'vista/alto (+10 %)': '#fdba74', 'pendiente 12-22 % (-15 %)': '#d9f99d', 'lote con vista (+25 %)': '#f9a8d4' })[p.tier] || '#fcd34d', fillOpacity: .75 };
   if (k === 'plaza') return { color: '#3730a3', weight: 1.2, fillColor: '#c7d2fe', fillOpacity: .8 };
   if (k === 'park' || k === 'garden') return { color: '#166534', weight: 1.2, fillColor: '#bbf7d0', fillOpacity: .8 };
+  if (k === 'pocket') return { color: '#065f46', weight: 1, fillColor: '#a7f3d0', fillOpacity: .85 };
+  if (k === 'club') return { color: '#9d174d', weight: 1.2, fillColor: '#fbcfe8', fillOpacity: .8 };
+  if (k === 'water') return { color: '#1e40af', weight: 1, fillColor: '#93c5fd', fillOpacity: .85 };
+  if (k === 'path') return { color: '#065f46', weight: 2.5, dashArray: '2 4' };
+  if (k === 'chute') return { color: '#14532d', weight: 0.8, fillColor: '#14532d', fillOpacity: .35 };
+  if (k === 'culdesac') return { color: '#111', weight: 1.5, fillColor: '#e5e7eb', fillOpacity: .9 };
   if (k === 'green') return { color: '#9ca3af', weight: .8, fillColor: '#e5e7eb', fillOpacity: .6 };
   if (k === 'forest') return { color: '#166534', weight: 1, fillColor: '#86efac', fillOpacity: .3 };
-  if (k === 'road') return { color: '#111', weight: 5, opacity: .9 };
+  if (k === 'road') return { color: '#111', weight: (p.carriageway_m || 6) >= 6 ? 5 : 3.5, opacity: .9 };
   if (k === 'trail') return { color: '#166534', weight: 2, dashArray: '3 5' };
   return { color: '#333', weight: 1 }; };
 const CP_POINT = (f, ll) => f.properties.kind === 'gate' ? L.circleMarker(ll, { radius: 7, color: '#000', fillColor: 'red', fillOpacity: 1 }) : L.circleMarker(ll, { radius: 6, color: '#000', fillColor: '#fff', fillOpacity: 1 });
@@ -114,14 +120,36 @@ function cpPopup(f) { const p = f.properties, fmt = n => Number(n).toLocaleStrin
   if (p.kind === 'lot') return `<div class="popup"><h4>Lot ${p.id}</h4><table><tr><td>area</td><td><b>${fmt(p.area_m2)} m²</b></td></tr><tr><td>price</td><td><b>US$ ${fmt(p.price_usd)}</b> (${p.price_usd_m2}/m², ${p.tier})</td></tr><tr><td>ground slope</td><td>${p.slope_pct} %</td></tr><tr><td>elevation</td><td>${p.elev_m} m</td></tr></table></div>`;
   if (p.kind === 'road') return `<div class="popup"><h4>Street (${p.class})</h4><table><tr><td>length</td><td>${p.length_m} m</td></tr><tr><td>carriageway / right of way</td><td>${p.carriageway_m} / ${p.row_m} m</td></tr><tr><td>grade mean / max</td><td>${p.grade_mean_pct} / ${p.grade_max_pct} %</td></tr>${p.note ? `<tr><td>note</td><td>${p.note}</td></tr>` : ''}</table></div>`;
   return `<div class="popup"><h4>${p.label || p.kind}</h4>${p.area_m2 ? `${fmt(p.area_m2)} m²` : ''}</div>`; }
-function makeConceptLayer(fc) { return L.geoJSON(fc, { style: CP_STYLE, pointToLayer: CP_POINT, onEachFeature: (f, l) => { l.bindPopup(cpPopup(f)); if (f.properties.kind === 'lot') l.bindTooltip(`${f.properties.area_m2} m² · US$ ${Number(f.properties.price_usd).toLocaleString('en-US')}`, { sticky: true }); } }); }
+function makeConceptLayer(fc, withLabels = true) {
+  const grp = L.featureGroup();
+  L.geoJSON(fc, { style: CP_STYLE, pointToLayer: CP_POINT, onEachFeature: (f, l) => { l.bindPopup(cpPopup(f)); if (f.properties.kind === 'lot') l.bindTooltip(`${f.properties.area_m2} m² · US$ ${Number(f.properties.price_usd).toLocaleString('en-US')}`, { sticky: true }); } }).addTo(grp);
+  if (withLabels) {
+    const labels = L.layerGroup();
+    for (const f of fc.features) { if (f.properties.kind !== 'lot') continue; const ring = f.geometry.coordinates[0]; let cx = 0, cy = 0; for (const c of ring) { cx += c[0]; cy += c[1]; } cx /= ring.length; cy /= ring.length;
+      labels.addLayer(L.marker([cy, cx], { interactive: false, icon: L.divIcon({ className: 'lotlbl', html: `<span>${f.properties.area_m2} m²</span>`, iconSize: [0, 0] }) })); }
+    grp.labels = labels;
+    const sync = () => { const m = grp._map; if (!m) return; const on = m.getZoom() >= 17; if (on && !m.hasLayer(labels)) labels.addTo(m); if (!on && m.hasLayer(labels)) m.removeLayer(labels); };
+    grp.on('add', e => { e.target._map.on('zoomend', sync); sync(); }); grp.on('remove', e => { const m = e.target._map || grp._lastMap; if (m) { m.off('zoomend', sync); if (m.hasLayer(labels)) m.removeLayer(labels); } });
+    grp.onAdd = (function (orig) { return function (m) { grp._lastMap = m; return orig.call(this, m); }; })(grp.onAdd);
+  }
+  return grp;
+}
+function makeContourLayer2m(fc) {
+  const grp = L.featureGroup();
+  L.geoJSON(fc, { style: f => ({ color: '#8a5a00', weight: f.properties.major ? 1.3 : 0.5, opacity: f.properties.major ? .9 : .55 }), onEachFeature: (f, l) => l.bindTooltip(`${f.properties.level} m`, { sticky: true }) }).addTo(grp);
+  for (const f of fc.features) { if (!f.properties.major) continue; const c = f.geometry.coordinates; if (c.length < 6) continue; const m = c[Math.floor(c.length / 2)];
+    grp.addLayer(L.marker([m[1], m[0]], { interactive: false, icon: L.divIcon({ className: 'clbl', html: `<span style="font:600 10px ui-monospace,monospace;color:#6b3f00;text-shadow:0 0 3px #fff,0 0 3px #fff">${f.properties.level}</span>`, iconSize: [0, 0] }) })); }
+  return grp;
+}
 function initConceptTab(root, summary, layouts, opts) {
   const host = root.querySelector('#cp-map'); if (!host || !summary) return null;
   const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { maximumFractionDigits: d });
-  const map = L.map('cp-map', { preferCanvas: true, attributionControl: false }); opts.base(map);
+  const map = L.map('cp-map', { preferCanvas: true, attributionControl: false, maxZoom: 20 }); opts.base(map);
+  if (opts.contours) makeContourLayer2m(opts.contours).addTo(map);
   if (opts.parcels) L.geoJSON(opts.parcels, { style: { color: '#ff0000', weight: 2.5, fill: false } }).addTo(map);
+  if (opts.reference) L.geoJSON(opts.reference, { style: { color: '#1d4ed8', weight: 2.5, fillColor: '#3b82f6', fillOpacity: .25, dashArray: '4 3' }, onEachFeature: (f, l) => l.bindTooltip(f.properties.label || 'reference', { permanent: true, direction: 'center', className: 'lbl' }) }).addTo(map);
   let cur = null;
-  function show(k) { if (cur) map.removeLayer(cur); cur = makeConceptLayer(layouts[k]).addTo(map); map.fitBounds(cur.getBounds().pad(0.08));
+  function show(k) { if (cur) map.removeLayer(cur); cur = makeConceptLayer(layouts[k]).addTo(map); map.fitBounds(cur.getBounds().pad(0.08)); if (map.getZoom() < 17) map.setZoom(17);
     const st = summary.options.find(o => o.option === k); if (!st) return;
     root.querySelector('#cp-summary').innerHTML = `<table class="rep"><tbody>
       <tr><td>Option</td><td>${st.title}</td></tr>
@@ -141,6 +169,8 @@ function initConceptTab(root, summary, layouts, opts) {
     <li><b>A, villa loops</b> (${opts3[0].lots} lots): the capital-weekender product, most lots, most street per lot, tightest margins but fastest absorption at US$60-80,000 a lot. Two parallel streets make a loop so no one drives past everyone else's house.</li>
     <li><b>B, finca lots</b> (${opts3[1].lots} lots): one spine, half the street, the diaspora-retiree product at US$100-150,000 a lot with room for a casita and fruit trees; best margin per dollar of infrastructure, slower sales.</li>
     <li><b>C, mixed</b> (${opts3[2].lots} lots): villa lots near the plaza and park, finca lots behind, and the premium view lots on the crest of Parcela 2 that only exist if the north right of way is secured. Highest revenue; carries the extra north road.</li>
+    ${opts3[4] ? `<li><b>E, Batey hub + ridge fingers</b> (${opts3[4].lots} lots): D's field plus the contour lanes on Parcela 2 with estate view lots at a 25 % premium; the most distinctive product and the highest per-lot price, but it depends on the north right of way and on a hillside road built to the study's grades.</li>` : ''}
+    ${opts3[3] ? `<li><b>D, pocket neighbourhoods</b> (${opts3[3].lots} lots): three clusters of homes around their own shared green on a narrow 5 m loop lane, denser near the plaza and looser uphill, finca lots along the meandering spine between them, 20 m green buffers, and a pedestrian and golf-cart path linking park, greens, garden, clubhouse and trailhead. The retirement-community pattern: slow lanes, level lots, social greens; fewer lots than A, priced with a small cluster premium.</li>` : ''}
     <li>In all three the plaza sits on the carretera outside the gate, 400 m from the village, so it can serve outsiders (mini-market, liquor store, café) without opening the residential streets; the park behind the gate is the buffer between the plaza and the homes; the garden reuses a greenhouse; trails start at the strip and climb to the mirador.</li>
     <li>Costs are the biggest uncertainty: the per-lot figure is dominated by fixed items (wells, tank, treatment plant, clubhouse, plaza, gate). Phasing the clubhouse and plaza, or starting with septic per lot instead of a treatment plant, cuts the upfront by US$400,000-600,000.</li></ul>`;
   show('C');
