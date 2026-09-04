@@ -40,14 +40,24 @@
   .lbl { background: #fff9; border: 0; box-shadow: none; font-size: 10px; color: #7a4b00; font-weight: 600; }
   .mult { mix-blend-mode: multiply; }
   @media (max-width: 900px) { #side { width: 250px; } #coords { left: 270px; } .leaflet-top.leaflet-left { left: 270px; } #layers { width: 230px; } }
+  /* tabs + report pane */
+  .tabs { display: flex; gap: 4px; margin: 0 0 8px; } .tab { padding: 5px 10px; border: 1px solid #bbb; border-radius: 5px 5px 0 0; background: #f2f2ee; cursor: pointer; font-size: 12px; } .tab.on { background: #fff; border-bottom-color: #fff; font-weight: 600; }
+  #report { position: absolute; inset: 10px; z-index: 1200; background: #fbfbf8; border-radius: 8px; box-shadow: 0 2px 10px #0003; overflow: auto; padding: 24px 32px; display: none; }
+  .report { max-width: 860px; margin: 0 auto; font-size: 14px; line-height: 1.55; } .report h1 { font-size: 24px; margin: 0 0 6px; } .report .lede { color: var(--muted); font-size: 15px; margin: 0 0 18px; }
+  .report h2 { font-size: 16px; margin: 26px 0 8px; text-transform: none; letter-spacing: 0; color: var(--ink); border-bottom: 1px solid var(--line); padding-bottom: 4px; } .report h3 { font-size: 14px; margin: 14px 0 4px; }
+  table.rep { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 13px; font-variant-numeric: tabular-nums; } table.rep th, table.rep td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; } table.rep th { background: #f1f1ec; font-weight: 600; }
+  .report figure { margin: 14px 0; } .report img { max-width: 100%; border: 1px solid var(--line); border-radius: 4px; } .report figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .report ul, .report ol { padding-left: 20px; } .report li { margin: 4px 0; }
+  #report .tabs { position: sticky; top: 0; background: #fbfbf8; padding: 4px 0 8px; margin: -8px 0 8px; }
 </style>
 </head>
 <body>
 <div id="map"></div>
 
 <div id="side" class="panel">
+  <div class="tabs"><span class="tab on" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span></div>
   <h1>RA Land — Rancho Arriba</h1>
-  <div class="sub">Finca at Los Quemados · San José de Ocoa, DR · planning portal v0.2</div>
+  <div class="sub">Finca at Los Quemados · San José de Ocoa, DR · planning portal v0.3</div>
   <div style="margin-top:8px">
     <span class="btn" id="goParcel">Go to parcel</span><span class="btn" id="goMuni">Municipio</span>
     <span class="btn" id="measure">Measure</span><span class="btn" id="clearM">Clear</span>
@@ -79,11 +89,13 @@
   <div id="legend" class="panel"><h3>Legend</h3><div id="legendBody" class="cl"></div></div>
 </div>
 <div id="coords">move the mouse over the map</div>
+<div id="report"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab on" data-tab="report">Access road study</span></div><div id="reportBody">loading…</div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 <script src="contours_lod.js"></script>
+<script src="report_tab.js"></script>
 <script>
 const idOf = n => n.replace(/[^A-Za-z0-9]/g, '_');
 let PSt = null;
@@ -257,6 +269,8 @@ document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBoun
   if (PSt) { const box = document.getElementById('panos'); box.innerHTML = '';
     for (const n of Object.keys(PSt)) { try { const pv = await js(`panorama_vantage_${idOf(n)}`); const id = 'pano_' + idOf(n); box.insertAdjacentHTML('beforeend', `<div class="cl"><b>${n.replace('6642024034813_1-1-1', 'parcel')}</b></div><svg id="${id}" viewBox="0 0 300 180" style="width:100%;height:170px"></svg>`); drawPano(pv.eye10, pv.eye2, id); } catch (e) {} } }
   try { EG = await js('elev_grid'); } catch (e) {}
+  try { const html = await (await fetch('report_access.html')).text(); document.getElementById('reportBody').innerHTML = html; renderAccessReport(document.getElementById('reportBody'), await js('access_summary'), f => `data/${f}.jpg`); } catch (e) { console.warn('report', e); }
+  setupTabs(() => { document.getElementById('report').style.display = 'none'; }, () => { document.getElementById('report').style.display = 'block'; });
   try { const A = await js('access_summary'); const best = t => A.routes.filter(r => r.target === 'top of Parcela 2' && r.design_grade_pct === t).sort((a, b) => a.length_m - b.length_m);
     document.getElementById('accessTbl').innerHTML = `<table class="kv"><tr><td>Straight up the strip</td><td>${fmt(A.strip.length_m)} m, +${fmt(A.strip.gain_m)} m, mean ${A.strip.mean_grade_pct} % (not drivable)</td></tr>` +
       [12, 15].map(t => best(t).map(r => `<tr><td>${r.start.slice(0, 1)} → top, design ${t} %</td><td>${fmt(r.length_m)} m, mean ${r.mean_grade_pct} %, max ${r.max_grade_pct} %</td></tr>`).join('')).join('') +
