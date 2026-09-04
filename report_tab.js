@@ -11,6 +11,9 @@ function renderAccessReport(root, A, figSrc) {
   const c = root.querySelector('#rep-terrain'); const cls = A.terrain_slope_pct_classes;
   if (c && cls) c.innerHTML = `<table class="rep"><thead><tr><th>Ground slope</th><th>Parcel _3</th><th>Parcela 2</th></tr></thead><tbody>` + Object.keys(cls.parcel_2).map(k => `<tr><td>${k} %</td><td>${cls.parcel_3[k]} %</td><td>${cls.parcel_2[k]} %</td></tr>`).join('') + `</tbody></table>`;
   root.querySelectorAll('img[data-fig]').forEach(img => { img.src = figSrc(img.dataset.fig); });
+  const N = A.neighbor; const tn = root.querySelector('#rep-neigh');
+  if (tn && N && N.zones) tn.innerHTML = `<table class="rep"><thead><tr><th>Zone</th><th>Side</th><th>Area</th><th>Mean slope</th><th>Above field</th><th>Faces</th><th>Terrace lots (est.)</th><th>Road from strip foot</th><th>Cadastral parcels under it</th></tr></thead><tbody>` +
+    N.zones.map(z => `<tr><td>${z.zone}</td><td>${z.direction}</td><td>${z.area_ha} ha</td><td>${z.mean_slope_pct} %</td><td>+${z.elev_above_field_m} m</td><td>${z.faces}</td><td>${z.terrace_lots_est}</td><td>${fmt(z.road_from_strip_foot.length_m)} m, mean ${z.road_from_strip_foot.mean_grade_pct} %, ${z.road_from_strip_foot.pct_off_own_land} % off own land</td><td>${(z.cadastral_parcels || []).slice(0, 4).map(c => `${c.layer === 'approved' ? 'posicional ' : 'historic '}${c.id} (${c.overlap_ha} ha)`).join('; ')}</td></tr>`).join('') + `</tbody></table><p class="cl">${N.assumptions}</p>`;
 }
 function setupTabs(showMap, showReport) {
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b)); b.dataset.tab === 'map' ? showMap() : showReport(); }));

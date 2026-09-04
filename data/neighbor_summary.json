@@ -1,0 +1,142 @@
+{
+ "zones": [
+  {
+   "zone": 1,
+   "direction": "NE",
+   "likely_owner": "Negocios e Inversiones Diversos / S\u00e1nchez D\u00edaz (P. 328)",
+   "cadastral_parcels": [
+    {
+     "layer": "approved",
+     "id": "304760331910",
+     "expediente": "6642024034813-07",
+     "parcel_ha": 39.75,
+     "overlap_ha": 1.37
+    },
+    {
+     "layer": "approved",
+     "id": "304760349243",
+     "expediente": "6642024034813-07",
+     "parcel_ha": 28.25,
+     "overlap_ha": 1.37
+    }
+   ],
+   "area_ha": 1.37,
+   "mean_slope_pct": 25.7,
+   "mean_elev_m": 788,
+   "elev_above_field_m": 82,
+   "aspect_deg": 227,
+   "faces": "SW",
+   "terrace_lots_est": 5,
+   "dist_from_own_m": 0,
+   "road_from_strip_foot": {
+    "length_m": 1160,
+    "gain_m": 72.3,
+    "mean_grade_pct": 7.8,
+    "max_grade_pct": 12.6,
+    "pct_off_own_land": 57
+   }
+  },
+  {
+   "zone": 2,
+   "direction": "N",
+   "likely_owner": "Bobea di Franco (P. 304760288101) / P. 328 further NE",
+   "cadastral_parcels": [
+    {
+     "layer": "historic",
+     "id": "328",
+     "parcel_ha": 185.92,
+     "overlap_ha": 28.36
+    },
+    {
+     "layer": "historic",
+     "id": "332-A-1",
+     "parcel_ha": 17.7,
+     "overlap_ha": 6.46
+    },
+    {
+     "layer": "approved",
+     "id": "304760331910",
+     "expediente": "6642024034813-07",
+     "parcel_ha": 39.75,
+     "overlap_ha": 1.57
+    },
+    {
+     "layer": "approved",
+     "id": "304760349243",
+     "expediente": "6642024034813-07",
+     "parcel_ha": 28.25,
+     "overlap_ha": 1.52
+    },
+    {
+     "layer": "historic",
+     "id": "332-A-2",
+     "parcel_ha": 18.15,
+     "overlap_ha": 0.31
+    },
+    {
+     "layer": "historic",
+     "id": "330",
+     "parcel_ha": 5.51,
+     "overlap_ha": 0.08
+    },
+    {
+     "layer": "approved",
+     "id": "304760131359",
+     "expediente": "6642024034813-07",
+     "parcel_ha": 10.47,
+     "overlap_ha": 0.05
+    },
+    {
+     "layer": "historic",
+     "id": "332-A-6",
+     "parcel_ha": 10.22,
+     "overlap_ha": 0.05
+    }
+   ],
+   "area_ha": 45.0,
+   "mean_slope_pct": 17.2,
+   "mean_elev_m": 781,
+   "elev_above_field_m": 75,
+   "aspect_deg": 235,
+   "faces": "SW",
+   "terrace_lots_est": 179,
+   "dist_from_own_m": 0,
+   "road_from_strip_foot": {
+    "length_m": 814,
+    "gain_m": 67.6,
+    "mean_grade_pct": 8.6,
+    "max_grade_pct": 12.9,
+    "pct_off_own_land": 71
+   }
+  },
+  {
+   "zone": 3,
+   "direction": "N",
+   "likely_owner": "Bobea di Franco (P. 304760288101) / P. 328 further NE",
+   "cadastral_parcels": [
+    {
+     "layer": "historic",
+     "id": "328",
+     "parcel_ha": 185.92,
+     "overlap_ha": 0.72
+    }
+   ],
+   "area_ha": 0.72,
+   "mean_slope_pct": 27.2,
+   "mean_elev_m": 811,
+   "elev_above_field_m": 105,
+   "aspect_deg": 264,
+   "faces": "W",
+   "terrace_lots_est": 2,
+   "dist_from_own_m": 206,
+   "road_from_strip_foot": {
+    "length_m": 1387,
+    "gain_m": 95.3,
+    "mean_grade_pct": 7.7,
+    "max_grade_pct": 12.7,
+    "pct_off_own_land": 72
+   }
+  }
+ ],
+ "assumptions": "suitability = slope <= 30 %, 15-195 m above the field, outside own parcels; terrace lot 2,500 m2 gross; road = 12 % design grade least-cost path from the strip foot; owners from the cadastral plan by direction only"
+}
