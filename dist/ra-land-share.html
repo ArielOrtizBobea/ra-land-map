@@ -540,7 +540,7 @@ function bearing(a, b) { const toR = Math.PI / 180, dL = (b[1] - a[1]) * toR, y 
 const popup = (title, rows) => `<div class="popup"><h4>${title}</h4><table>${rows.filter(r => r[1] !== undefined && r[1] !== null && r[1] !== '').map(r => `<tr><td>${r[0]}</td><td><b>${r[1]}</b></td></tr>`).join('')}</table></div>`;
 
 const RI_ORANGE = '#d97706';
-const riStyle = approved => f => f.properties.family ? { color: '#dc2626', weight: 3, fillColor: '#dc2626', fillOpacity: .05 } : { color: RI_ORANGE, weight: approved ? 2.2 : 0.9, fillColor: RI_ORANGE, fillOpacity: approved ? .05 : .02 };
+const riStyle = approved => f => f.properties.family ? { color: '#dc2626', weight: 3, fillColor: '#dc2626', fillOpacity: .05 } : { color: RI_ORANGE, weight: approved ? 2.2 : 1.1, dashArray: approved ? null : '5 4', fillColor: RI_ORANGE, fillOpacity: approved ? .05 : .02 };
 const riPopup = p => popup(p.owner || 'Parcela aprobada (Registro Inmobiliario)', [['owner source', p.owner_source || 'not public online: certificación del Registro de Títulos'], ['posicional', p.Posicional], ['expediente', p.Expediente], ['área', fmt(p.Area) + ' m²'], ['operación', p.Operacion], ['inscrita', p.FechaInsc], ['municipio', p.Municipio]]);
 const riHistPopup = p => popup(p.owner || 'Parcela histórica (old cadastral number)', [['owner source', p.owner_source || 'not public online'], ['parcela', p.PARCELA], ['DC', p.DC], ['área', fmt(p.AREA) + ' m²'], ['provincia', p.PROVINCIA], ['note', 'old-system survey; layer shifted 10.5 m west / 6.5 m south to line up with the approved parcels']]);
 const LAYERS = {}, RASTER = new Set();
@@ -577,7 +577,7 @@ if (D.view_summary) LAYERS.view_spots = makeViewSpots(D.view_summary);
 if (D.dem_probe) LAYERS.view_probe = makeViewProbe(map, D.dem_probe.src, D.dem_probe.meta);
 const MENU = [
   { title: 'Ground', items: [['satellite', 'Satellite (static Esri exports)', true, '#4a5f3a'], ['hillshade', 'Hillshade', false, '#888'], ['elevation', 'Elevation tint', false, '#7fbc41']] },
-  { title: 'Parcels', items: [['parcel', 'Our parcels — plano 2026 + Registro Inmobiliario', true, '#dc2626'], ['ri_aprobados', 'Confirmed parcels — Registro approved, thick (aligned to the plano)', true, '#d97706'], ['ri_historicas', 'Historical parcels — old numbers, thin (aligned)', true, '#d97706']] },
+  { title: 'Parcels', items: [['parcel', 'Our parcels — plano 2026 + Registro Inmobiliario', true, '#dc2626'], ['ri_aprobados', 'Confirmed parcels — Registro approved, thick (aligned to the plano)', true, '#d97706'], ['ri_historicas', 'Historical parcels — old numbers, dashed (aligned)', true, '#d97706']] },
   { title: 'Terrain', items: [['contours', 'Contours — detail follows zoom', true, '#6b3f00'], ['slope_class', 'Slope classes', false, '#fdae61'], ['aspect', 'Aspect', false, '#91bfdb']] },
   { title: 'Views — what can you see from here?', items: [['view_score', 'View score 0–100', false, '#41b6c4'], ['view_class', 'View character (panoramic, valley, mountain backdrop…)', false, '#7a0177'], ['view_depth', 'Looking down: visible valley depth', false, '#2171b5'], ['view_relief', 'Mountains in view: visible relief', false, '#238b45'], ['view_spots', 'Best view spots on the family land', false, '#7a0177'], ['view_probe', 'Click the map: skyline from any point', false, '#111']] },
   { title: 'Water', items: [['rivers', 'Rivers & streams', true, '#2f6db3'], ['dist_river', 'Distance to river bands', false, '#6baed6'], ['drainage_dem', 'DEM drainage lines', false, '#4292c6']] },
