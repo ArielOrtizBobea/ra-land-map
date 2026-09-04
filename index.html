@@ -98,7 +98,7 @@
   <h2>Notes</h2>
   <div id="caveats" class="caveat"></div>
   <div class="caveat" style="margin-top:8px">Basemaps: Esri Light Gray canvas, Esri World Imagery (© Esri, Vantor, Earthstar Geographics), IGN-JJHM Cartografía Base (live WMS), OpenStreetMap, OpenTopoMap. Sketch with the draw tools (top of the map) and export the shapes as GeoJSON.</div>
-  <div style="margin-top:6px"><span class="btn" id="exportDraw">Export drawn shapes</span></div>
+  <div style="margin-top:6px"><span class="btn" id="exportDraw">Export drawn shapes</span><span class="btn" id="clearDrawn">Delete all sketches</span></div>
   </div>
 </div>
 
@@ -161,7 +161,7 @@ const RI_ORANGE = '#d97706';
 const riStyle = approved => f => f.properties.family ? { color: '#dc2626', weight: 3, fillColor: '#dc2626', fillOpacity: .05 } : { color: RI_ORANGE, weight: approved ? 2.2 : 1.1, dashArray: approved ? null : '5 4', fillColor: RI_ORANGE, fillOpacity: approved ? .05 : .02 };
 const riPopup = p => popup(p.owner || 'Parcela aprobada (Registro Inmobiliario)', [['owner source', p.owner_source || 'not public online: certificación del Registro de Títulos'], ['posicional', p.Posicional], ['expediente', p.Expediente], ['área', fmt(p.Area) + ' m²'], ['operación', p.Operacion], ['inscrita', p.FechaInsc], ['municipio', p.Municipio]]);
 const oursPopup = p => popup(p.name, [['owner', p.owner], ['label', p.label], ['posicional (Registro)', p.Posicional], ['expediente', p.Expediente], ['inscrita', p.FechaInsc], ['registry note', p.ri_note], ['area (plan)', fmt(p.plan_area_m2) + ' m²'], ['area (polygon)', `${fmt(p.area_m2)} m² = ${fmt(p.area_ha, 2)} ha = ${fmt(p.area_acres, 1)} ac`], ['vertices', p.vertices], ['source', p.source]]);
-const riHistPopup = p => popup(p.owner || 'Parcela histórica (old cadastral number)', [['owner source', p.owner_source || 'not public online'], ['parcela', p.PARCELA], ['DC', p.DC], ['área', fmt(p.AREA) + ' m²'], ['provincia', p.PROVINCIA], ['note', 'old-system survey; layer shifted 10.5 m west / 6.5 m south to line up with the approved parcels']]);
+const riHistPopup = p => popup(p.owner || 'Parcela histórica (old cadastral number)', [['owner source', p.owner_source || 'not public online'], ['parcela', p.PARCELA], ['DC', p.DC], ['área', fmt(p.AREA) + ' m²'], ['provincia', p.PROVINCIA], ['note', p.shift_note || 'old-system survey']]);
 const VEC = {
   parcel: async () => { const l = L.geoJSON(await gj('cadastre_ours'), { pane: 'ours', interactive: false, style: { color: '#dc2626', weight: 3, fillColor: '#dc2626', fillOpacity: .05 } });
     parcelLayer = l; parcelCenter = l.getBounds().getCenter(); return l; },
@@ -288,8 +288,22 @@ map.on('click', e => { if (!measuring) return; mPts.push(e.latlng); mMarkers.pus
 const drawn = new L.FeatureGroup().addTo(map);
 map.addControl(new L.Control.Draw({ position: 'topleft', edit: { featureGroup: drawn }, draw: { circle: false, circlemarker: false, marker: true, polyline: true, polygon: { allowIntersection: false, showArea: true, metric: ['ha', 'm'] }, rectangle: true } }));
 const saveDrawn = () => { try { localStorage.setItem('ra_drawn', JSON.stringify(drawn.toGeoJSON())); } catch (x) {} };
-map.on(L.Draw.Event.CREATED, e => { drawn.addLayer(e.layer); saveDrawn(); }); map.on(L.Draw.Event.EDITED, saveDrawn); map.on(L.Draw.Event.DELETED, saveDrawn);
-try { const saved = localStorage.getItem('ra_drawn'); if (saved) L.geoJSON(JSON.parse(saved)).eachLayer(l => drawn.addLayer(l)); } catch (x) {}
+// measurements for sketched shapes: perimeter + area for polygons, length for lines, UTM position for markers
+function shapeMeasure(layer) {
+  const ring = latlngs => { let len = 0; for (let i = 1; i < latlngs.length; i++) len += dist(latlngs[i - 1], latlngs[i]); return len; };
+  const areaOf = latlngs => { const pts = latlngs.map(p => proj4('EPSG:4326', UTM19, [p.lng, p.lat])); let a = 0; for (let i = 0; i < pts.length; i++) { const j = (i + 1) % pts.length; a += pts[i][0] * pts[j][1] - pts[j][0] * pts[i][1]; } return Math.abs(a) / 2; };
+  if (layer instanceof L.Polygon) { const ll = layer.getLatLngs()[0]; const a = areaOf(ll), per = ring(ll.concat([ll[0]])); return `<b>${fmt(a)} m²</b> = ${fmt(a / 10000, 2)} ha = ${fmt(a / 4046.86, 2)} ac · perimeter ${fmt(per)} m · sides ${ll.map((p, i) => fmt(dist(p, ll[(i + 1) % ll.length]))).join(' / ')} m`; }
+  if (layer instanceof L.Polyline) { const ll = layer.getLatLngs(); return `<b>${fmt(ring(ll))} m</b> · segments ${ll.slice(1).map((p, i) => fmt(dist(ll[i], p))).join(' / ')} m`; }
+  if (layer.getLatLng) { const p = layer.getLatLng(), u = proj4('EPSG:4326', UTM19, [p.lng, p.lat]); return `UTM 19N ${fmt(u[0])} E, ${fmt(u[1])} N`; }
+  return '';
+}
+function labelShape(layer) { const t = shapeMeasure(layer); if (!t) return; if (layer.getTooltip()) layer.setTooltipContent(t); else layer.bindTooltip(t, { permanent: true, direction: 'top', className: 'lbl', opacity: .95 });
+  if (!layer._delWired) { layer._delWired = true; layer.on('click', ev => { L.DomEvent.stop(ev); const id = 'del' + Date.now(); L.popup({ maxWidth: 360 }).setLatLng(ev.latlng).setContent(`<div class="popup">${shapeMeasure(layer)}<div style="margin-top:6px"><span class="btn" id="${id}">Delete this shape</span></div></div>`).openOn(map); setTimeout(() => { const b = document.getElementById(id); if (b) b.onclick = () => { drawn.removeLayer(layer); map.closePopup(); saveDrawn(); }; }, 30); }); } }
+let drawing = false;
+map.on('draw:drawstart draw:editstart draw:deletestart', () => { drawing = true; map.closePopup(); }); map.on('draw:drawstop draw:editstop draw:deletestop', () => { drawing = false; });
+map.on(L.Draw.Event.CREATED, e => { drawn.addLayer(e.layer); labelShape(e.layer); saveDrawn(); }); map.on(L.Draw.Event.EDITED, e => { e.layers.eachLayer(labelShape); saveDrawn(); }); map.on(L.Draw.Event.DELETED, saveDrawn);
+try { const saved = localStorage.getItem('ra_drawn'); if (saved) L.geoJSON(JSON.parse(saved)).eachLayer(l => { drawn.addLayer(l); labelShape(l); }); } catch (x) {}
+document.getElementById('clearDrawn').onclick = () => { drawn.clearLayers(); map.closePopup(); saveDrawn(); };
 document.getElementById('exportDraw').onclick = () => { const blob = new Blob([JSON.stringify(drawn.toGeoJSON(), null, 1)], { type: 'application/geo+json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'sketch.geojson'; a.click(); };
 
 document.getElementById('goParcel').onclick = () => { if (parcelLayer) map.fitBounds(parcelLayer.getBounds().pad(0.25)); };
@@ -322,10 +336,15 @@ function parcelHits(latlng) {
   return out.sort((a, b) => rank[a.kind] - rank[b.kind] || area(a.p) - area(b.p));
 }
 map.on('click', e => {
-  if (LAYERS.view_probe && map.hasLayer(LAYERS.view_probe)) return;
+  if (measuring || drawing || (LAYERS.view_probe && map.hasLayer(LAYERS.view_probe))) return;   // no parcel popups while measuring or sketching
   if (map._popup && map._popup.isOpen() && map._popup.getLatLng() && map._popup.getLatLng().equals(e.latlng)) return;   // another layer already answered this click
   const hits = parcelHits(e.latlng); if (!hits.length) return;
-  const html = hits.map(h => h.kind === 'ours' ? oursPopup(h.p) : h.kind === 'confirmed' ? riPopup(h.p) : riHistPopup(h.p)).join('<hr style="border:0;border-top:1px solid #ddd;margin:6px 0">');
+  const pick = kind => hits.find(x => x.kind === kind) || null;   // hits are sorted smallest first within each category
+  const chosen = []; const o = pick('ours'); if (o) chosen.push(o); else { const c = pick('confirmed'); if (c) chosen.push(c); } const hh = pick('historic'); if (hh) chosen.push(hh);
+  const short = h => h.kind === 'ours' ? popup(h.p.owner || h.p.name, [['parcel', h.p.name], ['posicional', h.p.Posicional], ['area', `${fmt(h.p.area_m2)} m² = ${fmt(h.p.area_ha, 2)} ha`]])
+    : h.kind === 'confirmed' ? popup(h.p.owner || 'Approved parcel · owner not public', [['posicional', h.p.Posicional], ['area', `${fmt(h.p.Area)} m² = ${fmt(h.p.Area / 1e4, 2)} ha`], ['inscrita', String(h.p.FechaInsc || '').slice(0, 10)], ['operación', h.p.Operacion]])
+    : popup((h.p.owner ? h.p.owner + ' · ' : '') + 'Historic parcel ' + h.p.PARCELA, [['DC', h.p.DC], ['area', `${fmt(h.p.AREA)} m² = ${fmt(h.p.AREA / 1e4, 2)} ha`]]);
+  const html = chosen.map(short).join('<hr style="border:0;border-top:1px solid #ddd;margin:6px 0">');
   L.popup({ maxWidth: 380 }).setLatLng(e.latlng).setContent(html).openOn(map);
 });
 // ---------- boot ----------
