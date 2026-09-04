@@ -13,6 +13,12 @@
   #map { position: absolute; inset: 0; background: #e4e7df; }
   .panel { background: var(--panel); border-radius: 8px; box-shadow: 0 2px 10px #0003; z-index: 1000; }
   #side { position: absolute; top: 10px; left: 10px; bottom: 10px; width: 320px; overflow: auto; padding: 12px 14px; }
+  .ptog { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border: 1px solid #bbb; border-radius: 5px; background: #fff; cursor: pointer; font-size: 11px; line-height: 22px; text-align: center; padding: 0; color: #333; }
+  .ptog:hover { border-color: #666; }
+  #side.collapsed { width: auto; height: auto; bottom: auto; overflow: hidden; padding: 8px 44px 8px 12px; } #side.collapsed .tabs { margin: 0; } #side.collapsed #sideBody { display: none; }
+  #layers { position: relative; } #layers h1 { padding-right: 30px; }
+  #right.collapsed { width: auto; bottom: auto; } #right.collapsed #layers { min-height: 0; overflow: hidden; } #right.collapsed #layerBody, #right.collapsed .opac, #right.collapsed #legend { display: none; }
+  body.lc .leaflet-top.leaflet-left { left: 10px; top: 52px; } body.lc #coords { left: 10px; }
   #side h1 { font-size: 17px; margin: 0 0 2px; } h2 { font-size: 12px; margin: 14px 0 4px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
   .sub { color: var(--muted); font-size: 12px; }
   table.kv { width: 100%; border-collapse: collapse; } table.kv td { padding: 3px 0; border-bottom: 1px solid var(--line); vertical-align: top; } table.kv td:first-child { color: var(--muted); width: 55%; padding-right: 6px; }
@@ -66,6 +72,8 @@
 
 <div id="side" class="panel">
   <div class="tabs"><span class="tab on" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span></div>
+  <button class="ptog" id="togSide" title="Collapse panel" aria-label="Collapse panel">&#9664;</button>
+  <div id="sideBody">
   <h1>RA Land — Rancho Arriba</h1>
   <div class="sub">Finca at Los Quemados · San José de Ocoa, DR · planning portal v0.3</div>
   <div style="margin-top:8px">
@@ -91,10 +99,11 @@
   <div id="caveats" class="caveat"></div>
   <div class="caveat" style="margin-top:8px">Basemaps: Esri Light Gray canvas, Esri World Imagery (© Esri, Vantor, Earthstar Geographics), IGN-JJHM Cartografía Base (live WMS), OpenStreetMap, OpenTopoMap. Sketch with the draw tools (top of the map) and export the shapes as GeoJSON.</div>
   <div style="margin-top:6px"><span class="btn" id="exportDraw">Export drawn shapes</span></div>
+  </div>
 </div>
 
 <div id="right">
-  <div id="layers" class="panel"><h1>Layers</h1><div id="layerBody">loading…</div>
+  <div id="layers" class="panel"><h1>Layers</h1><button class="ptog" id="togRight" title="Collapse panel" aria-label="Collapse panel">&#9654;</button><div id="layerBody">loading…</div>
     <div class="opac">Overlay opacity <input type="range" id="op" min="0" max="100" value="80"></div></div>
   <div id="legend" class="panel"><h3>Legend</h3><div id="legendBody" class="cl"></div></div>
 </div>
@@ -107,6 +116,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.9.0/proj4.js"></script>
 <script src="contours_lod.js"></script>
 <script src="report_tab.js"></script>
+<script src="views.js"></script>
 <script>
 const idOf = n => n.replace(/[^A-Za-z0-9]/g, '_');
 let PSt = null;
@@ -146,6 +156,10 @@ const roadStyle = f => { const c = f.properties.surf_class, hw = f.properties.hi
   if (c === 'paved') return { color: '#000', weight: 3 }; if (c === 'paved (assumed)') return { color: '#555', weight: 2.5 };
   if (c && c.startsWith('unpaved')) return { color: '#a0522d', weight: hw === 'track' ? 1.2 : 2, dashArray: '4 3' };
   return { color: '#bbbbbb', weight: hw === 'service' ? 1 : 1.6 }; };
+const RI_ORANGE = '#d97706';
+const riStyle = approved => f => f.properties.family ? { color: '#dc2626', weight: 3, fillColor: '#dc2626', fillOpacity: .05 } : { color: RI_ORANGE, weight: approved ? 2.2 : 0.9, fillColor: RI_ORANGE, fillOpacity: approved ? .05 : .02 };
+const riPopup = p => popup(p.owner || 'Parcela aprobada (Registro Inmobiliario)', [['owner source', p.owner_source || 'not public online: certificación del Registro de Títulos'], ['posicional', p.Posicional], ['expediente', p.Expediente], ['área', fmt(p.Area) + ' m²'], ['operación', p.Operacion], ['inscrita', p.FechaInsc], ['municipio', p.Municipio]]);
+const riHistPopup = p => popup(p.owner || 'Parcela histórica (old cadastral number)', [['owner source', p.owner_source || 'not public online'], ['parcela', p.PARCELA], ['DC', p.DC], ['área', fmt(p.AREA) + ' m²'], ['provincia', p.PROVINCIA], ['note', 'old-system survey; layer shifted 10.5 m west / 6.5 m south to line up with the approved parcels']]);
 const VEC = {
   parcel: async () => { const l = L.geoJSON(await gj('parcel_boundary'), { style: { color: '#ff0000', weight: 3, fillColor: '#ff0000', fillOpacity: .06 }, onEachFeature: (f, ly) => { ly.bindTooltip(`${f.properties.name} · ${fmt(f.properties.area_ha, 2)} ha`, { sticky: true }); ly.bindPopup(popup(f.properties.name, [['label', f.properties.label], ['area (plan)', fmt(f.properties.plan_area_m2) + ' m²'], ['area (polygon)', `${fmt(f.properties.area_m2)} m² = ${fmt(f.properties.area_ha, 2)} ha = ${fmt(f.properties.area_acres, 1)} ac`], ['vertices', f.properties.vertices], ['source', f.properties.source]])); } });
     parcelLayer = l; parcelCenter = l.getBounds().getCenter(); return l; },
@@ -160,11 +174,11 @@ const VEC = {
     L.geoJSON(await gj('places'), { pointToLayer: (f, ll) => L.marker(ll).bindTooltip(f.properties.name, { permanent: true, direction: 'right', className: 'lbl' }).bindPopup(popup(f.properties.name, [['type', f.properties.place], ['population', f.properties.population]])) }).addTo(g);
     try { L.geoJSON(await gj('pois'), { pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 5, color: '#6a3d9a', fillOpacity: .8 }).bindPopup(popup(f.properties.name || f.properties.kind, [['kind', f.properties.kind], ['value', f.properties.value]])) }).addTo(g); } catch (e) {}
     return g; },
-  ri_aprobados: async () => L.geoJSON(await gj('ri_parcels_aprobados'), { style: f => ({ color: f.properties.family ? '#dc2626' : '#1f2937', weight: f.properties.family ? 2.6 : 1.8, dashArray: f.properties.family ? null : '6 3', fillColor: f.properties.family ? '#dc2626' : '#6b7280', fillOpacity: f.properties.family ? .06 : .12 }), onEachFeature: (f, l) => { const p = f.properties; l.bindTooltip(`${p.owner || 'owner unknown'} · ${p.Posicional} · ${fmt(p.Area)} m²`, { sticky: true }); l.bindPopup(popup(p.owner || 'Parcela aprobada (Registro Inmobiliario)', [['owner source', p.owner_source || 'not public online: certificación del Registro de Títulos'], ['posicional', p.Posicional], ['expediente', p.Expediente], ['área', fmt(p.Area) + ' m²'], ['operación', p.Operacion], ['inscrita', p.FechaInsc], ['municipio', p.Municipio]])); } }),
-  ri_historicas: async () => L.geoJSON(await gj('ri_parcels_historicas'), { style: { color: '#6b21a8', weight: 1, dashArray: '5 4', fillOpacity: .02 }, onEachFeature: (f, l) => { const p = f.properties; l.bindTooltip(`${p.owner ? p.owner + ' · ' : ''}parcela ${p.PARCELA} (DC ${p.DC}) · ${fmt(p.AREA)} m²`, { sticky: true }); l.bindPopup(popup(p.owner || 'Parcela histórica (sistema anterior)', [['owner source', p.owner_source || 'not public online'], ['parcela', p.PARCELA], ['DC', p.DC], ['área', fmt(p.AREA) + ' m²'], ['provincia', p.PROVINCIA]])); } }),
+  ri_aprobados: async () => L.geoJSON(await gj('ri_parcels_aprobados'), { style: riStyle(true), onEachFeature: (f, l) => l.bindPopup(riPopup(f.properties)) }),
+  ri_historicas: async () => L.geoJSON(await gj('ri_parcels_historicas'), { style: riStyle(false), onEachFeature: (f, l) => l.bindPopup(riHistPopup(f.properties)) }),
   ri_lotif: async () => L.geoJSON(await gj('ri_lotificaciones_muni'), { style: { color: '#b45309', weight: 2.2, fillColor: '#f59e0b', fillOpacity: .3 }, onEachFeature: (f, l) => { const p = f.properties; l.bindTooltip(`Lotificación aprobada · ${fmt(p.Area)} m² · ${p.FechaInsc.slice(0, 10)}`, { sticky: true }); l.bindPopup(popup('Urbanización parcelaria aprobada (RI)', [['posicional', p.Posicional], ['expediente', p.Expediente], ['área', fmt(p.Area) + ' m²'], ['inscrita', p.FechaInsc]])); } }),
-  ri_muni: async () => L.geoJSON(await gj('ri_parcels_aprobados_muni'), { style: f => ({ color: f.properties.family ? '#dc2626' : '#1f2937', weight: f.properties.family ? 2.4 : 1.2, dashArray: f.properties.family ? null : '5 3', fillColor: '#6b7280', fillOpacity: .08 }), onEachFeature: (f, l) => { const p = f.properties; l.bindTooltip(`${p.owner || 'owner unknown'} · ${p.Posicional} · ${fmt(p.Area)} m²`, { sticky: true }); l.bindPopup(popup(p.owner || 'Parcela aprobada (Registro Inmobiliario)', [['posicional', p.Posicional], ['expediente', p.Expediente], ['área', fmt(p.Area) + ' m²'], ['operación', p.Operacion], ['inscrita', p.FechaInsc], ['municipio', p.Municipio]])); } }),
-  ri_muni_hist: async () => L.geoJSON(await gj('ri_parcels_historicas_muni'), { style: { color: '#6b21a8', weight: 1, dashArray: '5 4', fillOpacity: .03 }, onEachFeature: (f, l) => { const p = f.properties; l.bindTooltip(`parcela ${p.PARCELA} (DC ${p.DC}) · ${fmt(p.AREA)} m²`, { sticky: true }); l.bindPopup(popup('Parcela histórica', [['parcela', p.PARCELA], ['DC', p.DC], ['área', fmt(p.AREA) + ' m²'], ['provincia', p.PROVINCIA]])); } }),
+  ri_muni: async () => L.geoJSON(await gj('ri_parcels_aprobados_muni'), { style: riStyle(true), onEachFeature: (f, l) => l.bindPopup(riPopup(f.properties)) }),
+  ri_muni_hist: async () => L.geoJSON(await gj('ri_parcels_historicas_muni'), { style: riStyle(false), onEachFeature: (f, l) => l.bindPopup(riHistPopup(f.properties)) }),
   neigh_zones: async () => L.geoJSON(await gj('neighbor_zones'), { style: { color: '#b45309', weight: 1.5, fillColor: '#fbbf24', fillOpacity: .35 }, onEachFeature: (f, l) => { const p = f.properties; l.bindPopup(popup(`Hillside zone ${p.zone} (${p.direction})`, [['area', p.area_ha + ' ha'], ['mean slope', p.mean_slope_pct + ' %'], ['above the field', p.elev_above_field_m + ' m'], ['faces', p.faces], ['terrace lots (est.)', p.terrace_lots_est], ['road from strip foot', `${fmt(p.road_from_strip_foot.length_m)} m, mean ${p.road_from_strip_foot.mean_grade_pct} %`], ['cadastral parcels', (p.cadastral_parcels || []).slice(0, 4).map(c => `${c.id} (${c.overlap_ha} ha)`).join('; ')]])); } }),
   neigh_roads: async () => L.geoJSON(await gj('neighbor_switchback'), { style: { color: '#1d4ed8', weight: 2.5, dashArray: '6 3' }, onEachFeature: (f, l) => l.bindPopup(popup(`Switchback to zone ${f.properties.zone}`, [['length', fmt(f.properties.length_m) + ' m'], ['climb', f.properties.gain_m + ' m'], ['mean grade', f.properties.mean_grade_pct + ' %'], ['max grade', f.properties.max_grade_pct + ' %'], ['off own land', f.properties.pct_off_own_land + ' %']])) }),
   access_routes: async () => L.geoJSON(await gj('access_routes'), { filter: f => f.properties.kind === 'strip' || (f.properties.target === 'top of Parcela 2' && f.properties.design_grade_pct !== 20), style: f => ({ color: f.properties.kind === 'strip' ? '#ff00ff' : ({ 12: '#0571b0', 15: '#e08214', 20: '#7b3294' })[f.properties.design_grade_pct], weight: f.properties.kind === 'strip' ? 3 : 2.5, dashArray: f.properties.kind === 'strip' ? '6 4' : null, opacity: .9 }), onEachFeature: (f, l) => l.bindPopup(popup(f.properties.kind === 'strip' ? f.properties.label : `Alignment, design grade ${f.properties.design_grade_pct}%`, [['from', f.properties.start], ['to', f.properties.target], ['length', fmt(f.properties.length_m) + ' m'], ['climb', fmt(f.properties.gain_m) + ' m'], ['mean grade', f.properties.mean_grade_pct + ' %'], ['max grade', f.properties.max_grade_pct + ' %'], ['length steeper than 12 % / 15 %', `${f.properties.pct_length_over_12} % / ${f.properties.pct_length_over_15} %`]])) }),
@@ -174,8 +188,9 @@ const VEC = {
 };
 // menu definition: [key, label, on-by-default, swatch colour]
 const MENU = [
-  { title: 'Parcels', items: [['parcel', 'Boundaries — plano 2026 (both parcels)', true, '#ff0000'], ['viewshed_10m', 'Viewshed from lower field of _3, eye 10 m', false, '#ffd92f'], ['viewshed_2m', 'Viewshed from lower field of _3, eye 2 m', false, '#ffd92f']] },
+  { title: 'Parcels', items: [['parcel', 'Boundaries — plano 2026 (both parcels)', true, '#ff0000']] },
   { title: 'Terrain', items: [['contours', 'Contours — detail follows zoom', true, '#6b3f00'], ['hillshade', 'Hillshade', false, '#888'], ['elevation', 'Elevation tint', false, '#7fbc41'], ['slope_class', 'Slope classes', false, '#fdae61'], ['aspect', 'Aspect', false, '#91bfdb']] },
+  { title: 'Views — what can you see from here?', items: [['view_score', 'View score 0–100', false, '#41b6c4'], ['view_class', 'View character (panoramic, valley, mountain backdrop…)', false, '#7a0177'], ['view_depth', 'Looking down: visible valley depth', false, '#2171b5'], ['view_relief', 'Mountains in view: visible relief', false, '#238b45'], ['view_spots', 'Best view spots on the family land', false, '#7a0177'], ['view_probe', 'Click the map: skyline from any point', false, '#111']] },
   { title: 'Water', items: [['rivers', 'Rivers & streams (OSM)', true, '#1f78b4'], ['riparian', '30 m riparian strip (Ley 64-00, verify)', false, '#08306b'], ['dist_river', 'Distance to river bands', false, '#6baed6'], ['drainage_dem', 'DEM drainage lines', false, '#4292c6']] },
   { title: 'Roads & places', items: [['roads', 'Roads by surface (OSM)', true, '#000'], ['places', 'Villages & POIs', true, '#2b6cb0'], ['muni', 'Municipio boundary', true, '#222']] },
   { title: 'Structures', items: [['buildings_ms', 'Buildings — Microsoft footprints', true, '#7a1f1f'], ['buildings_osm', 'Buildings — OSM', false, '#f28e2b'], ['structure_density', 'Structure density (per km²)', false, '#e34a33']] },
@@ -196,8 +211,10 @@ function updateLegend() {
   if (on('dist_river')) h += '<h3>Distance to mapped river</h3>' + legendRows(LEG.dist_river || []);
   if (on('slope_pct_window')) h += '<h3>Terrain slope for roads</h3>' + legendRows(LEG.slope_pct || []);
   if (on('access_routes')) h += '<h3>Access alignments</h3><div class="row"><span class="sw" style="background:#ff00ff"></span>straight up the strip (29 % mean)</div><div class="row"><span class="sw" style="background:#0571b0"></span>design grade 12 %</div><div class="row"><span class="sw" style="background:#e08214"></span>design grade 15 %</div>';
-  if (Object.keys(LAYERS).some(k => k.startsWith('viewshed_parcel_') && on(k))) h += '<h3>Parcel vantage viewshed</h3><div class="row"><span class="sw" style="background:#ff7f00"></span>visible from the parcel\'s highest point (eye 10 m)</div>';
-  if (on('viewshed_2m') || on('viewshed_10m')) h += '<div class="row"><span class="sw" style="background:#ffd92f"></span>visible from the lower field of _3</div>';
+  if (on('view_score')) h += '<h3>View score</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#f7f7f7,#c7e9b4,#41b6c4,#2c7fb8,#7a0177)"></span>0 (nothing to see) → 100 (panoramic)</div><div class="cl">' + ((LEG.views || {}).method || '') + '</div>';
+  if (on('view_class')) h += '<h3>View character</h3>' + legendRows(((LEG.views || {}).classes || []).map(c => ({ hex: c.color, name: c.label })));
+  if (on('view_depth')) h += '<h3>Looking down: visible valley depth</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#f7fbff,#08306b)"></span>0 → 200 m below you</div>';
+  if (on('view_relief')) h += '<h3>Mountains in view: visible relief</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#f7fcf5,#00441b)"></span>0 → 500 m above you</div>';
   if (on('elevation')) h += '<h3>Elevation</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#276419,#7fbc41,#e6f5d0,#fde0ef,#de77ae,#8e0152,#fff)"></span>600 → 1,950 m</div>';
   if (on('structure_density')) h += '<h3>Structures / km²</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#fee8c8,#fdbb84,#e34a33,#7f0000)"></span>0 → 400+</div>';
   if (on('drainage_dem')) h += '<h3>DEM drainage (catchment)</h3><div class="row"><span class="sw" style="background:#9ecae1"></span>&gt;13 ha</div><div class="row"><span class="sw" style="background:#4292c6"></span>&gt;54 ha</div><div class="row"><span class="sw" style="background:#08519c"></span>&gt;270 ha</div>';
@@ -207,7 +224,6 @@ function updateLegend() {
 }
 function buildMenu() {
   let h = '<div class="grp">Basemap</div>' + [['grey', 'Light grey map (Esri canvas)'], ['none', 'Plain grey, no basemap'], ['esri', 'Satellite (Esri)'], ['ign', 'IGN-JJHM official map (contours, roads, buildings)'], ['osm', 'OpenStreetMap'], ['topo', 'OpenTopoMap']].map(([k, l]) => `<label><input type="radio" name="base" value="${k}" ${k === currentBase ? 'checked' : ''}> ${l}</label>`).join('');
-  if (PSt) MENU[0].items.splice(1, 0, ...Object.keys(PSt).map(n => [`viewshed_parcel_${idOf(n)}`, `Viewshed from highest point of ${n.replace('6642024034813_1-1-1', 'parcel')}, eye 10 m`, false, '#ff7f00']));
   for (const g of MENU) {
     const items = g.items.filter(it => LAYERS[it[0]]); if (!items.length) continue;
     h += `<div class="grp">${g.title}</div>` + items.map(([k, l, on, c]) => `<label><input type="checkbox" data-key="${k}" ${on ? 'checked' : ''}> <span class="sw" style="background:${c}"></span>${l}</label>`).join('');
@@ -279,14 +295,27 @@ document.getElementById('exportDraw').onclick = () => { const blob = new Blob([J
 document.getElementById('goParcel').onclick = () => { if (parcelLayer) map.fitBounds(parcelLayer.getBounds().pad(0.25)); };
 document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBounds(LAYERS.muni.getBounds()); };
 
+// collapsible side panels (state remembered per browser)
+function setCollapsed(which, on) {
+  const el = document.getElementById(which), btn = document.getElementById(which === 'side' ? 'togSide' : 'togRight');
+  el.classList.toggle('collapsed', on); if (which === 'side') document.body.classList.toggle('lc', on);
+  btn.textContent = which === 'side' ? (on ? '\u25B6' : '\u25C0') : (on ? '\u25C0' : '\u25B6'); btn.title = on ? 'Expand panel' : 'Collapse panel';
+  try { localStorage.setItem('ra_' + which, on ? '1' : '0'); } catch (e) {}
+  setTimeout(() => map.invalidateSize(), 60);
+}
+for (const w of ['side', 'right']) {
+  document.getElementById(w === 'side' ? 'togSide' : 'togRight').onclick = () => setCollapsed(w, !document.getElementById(w).classList.contains('collapsed'));
+  let saved = null; try { saved = localStorage.getItem('ra_' + w); } catch (e) {} if (saved === '1') setCollapsed(w, true);
+}
 // ---------- boot ----------
 (async () => {
   for (const f of ['legend_terrain', 'legend_hydro', 'legend_landcover', 'legend_access']) { try { Object.assign(LEG, await js(f)); } catch (e) {} }
   try { PSt = await js('parcel_stats'); } catch (e) {}
-  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'viewshed_10m', 'viewshed_2m', 'dist_river', 'drainage_dem', 'landcover', 'structure_density', 'slope_pct_window']) await addRaster(k);
-  if (PSt) for (const n of Object.keys(PSt)) await addRaster(`viewshed_parcel_${idOf(n)}`);
+  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'view_score', 'view_class', 'view_depth', 'view_relief', 'dist_river', 'drainage_dem', 'landcover', 'structure_density', 'slope_pct_window']) await addRaster(k);
   for (const [k, mk] of Object.entries(VEC)) { try { LAYERS[k] = await mk(); } catch (e) { console.warn('layer missing', k); } }
-  try { parcelLabels(map, await gj('ri_parcels_aprobados')); } catch (e) {}
+  try { LEG.views = await js('legend_views'); } catch (e) {}
+  try { LAYERS.view_spots = makeViewSpots(await js('view_summary')); } catch (e) {}
+  try { LAYERS.view_probe = makeViewProbe(map, 'data/dem_probe.png', await js('dem_probe')); } catch (e) {}
   LAYERS.ri_wms = L.tileLayer.wms('https://atlas.ri.gob.do/geoserver/wms', { layers: 'Aprobados:Aprobados,ParcelasHistoricas:ParcelasHistoricas', format: 'image/png', transparent: true, version: '1.1.1', opacity: .7, attribution: 'Registro Inmobiliario RD' });
   buildMenu();
   let S = null; try { S = await js('site_summary'); } catch (e) {}

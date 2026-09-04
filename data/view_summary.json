@@ -1,0 +1,110 @@
+{
+ "parcels": {
+  "6642024034813_1-1-1_3": {
+   "cells": 115,
+   "score_mean": 49.6877334313692,
+   "score_max": 66.88938008414375,
+   "depth_mean": 5.651574611663818,
+   "depth_max": 31.51316261291504,
+   "relief_mean": 651.2811279296875,
+   "relief_max": 966.8486328125,
+   "open_mean": 0.5806763285024154,
+   "class_share": {
+    "little to see": 0.0,
+    "panoramic: down over the valley and mountains all round": 0.0,
+    "looking down over the valley": 0.0,
+    "mountain backdrop (flat foreground)": 1.0,
+    "open but flat": 0.0,
+    "enclosed (ravine or steep hollow)": 0.0
+   }
+  },
+  "Parcela 2": {
+   "cells": 82,
+   "score_mean": 68.23298005553764,
+   "score_max": 95.83333333333334,
+   "depth_mean": 98.48135375976562,
+   "depth_max": 157.5214385986328,
+   "relief_mean": 990.6525268554688,
+   "relief_max": 1080.75732421875,
+   "open_mean": 0.5308265582655827,
+   "class_share": {
+    "little to see": 0.0,
+    "panoramic: down over the valley and mountains all round": 0.15853658536585366,
+    "looking down over the valley": 0.6951219512195121,
+    "mountain backdrop (flat foreground)": 0.12195121951219512,
+    "open but flat": 0.0,
+    "enclosed (ravine or steep hollow)": 0.024390243902439025
+   }
+  }
+ },
+ "class_share_aoi": {
+  "little to see": 0.03804565208219062,
+  "panoramic: down over the valley and mountains all round": 0.05367537234715835,
+  "looking down over the valley": 0.41407535547023333,
+  "mountain backdrop (flat foreground)": 0.19364246234336105,
+  "open but flat": 6.750770009704232e-06,
+  "enclosed (ravine or steep hollow)": 0.30055440698704694
+ },
+ "best_spots": [
+  {
+   "parcel": "6642024034813_1-1-1_3",
+   "lat": 18.71611111111111,
+   "lon": -70.46083333333333,
+   "score": 66.88938008414375,
+   "depth": 21.77930450439453,
+   "relief": 953.1381225585938,
+   "open": 0.8611111111111112,
+   "elev": 710.7428588867188
+  },
+  {
+   "parcel": "6642024034813_1-1-1_3",
+   "lat": 18.716666666666665,
+   "lon": -70.46055555555554,
+   "score": 65.16580780347189,
+   "depth": 18.75615692138672,
+   "relief": 864.8970336914062,
+   "open": 0.8333333333333334,
+   "elev": 708.9381103515625
+  },
+  {
+   "parcel": "6642024034813_1-1-1_3",
+   "lat": 18.716388888888886,
+   "lon": -70.46055555555554,
+   "score": 64.48725660641989,
+   "depth": 16.83875274658203,
+   "relief": 869.9437866210938,
+   "open": 0.8333333333333334,
+   "elev": 708.1140747070312
+  },
+  {
+   "parcel": "Parcela 2",
+   "lat": 18.724166666666665,
+   "lon": -70.45638888888888,
+   "score": 95.83333333333334,
+   "depth": 157.5214385986328,
+   "relief": 983.6703491210938,
+   "open": 0.8333333333333334,
+   "elev": 842.7372436523438
+  },
+  {
+   "parcel": "Parcela 2",
+   "lat": 18.723888888888887,
+   "lon": -70.45638888888888,
+   "score": 95.83333333333334,
+   "depth": 150.37814331054688,
+   "relief": 1007.7241821289062,
+   "open": 0.8333333333333334,
+   "elev": 840.2119750976562
+  },
+  {
+   "parcel": "Parcela 2",
+   "lat": 18.723888888888887,
+   "lon": -70.45611111111111,
+   "score": 95.13888888888889,
+   "depth": 155.17987060546875,
+   "relief": 985.1328125,
+   "open": 0.8055555555555556,
+   "elev": 841.1007690429688
+  }
+ ]
+}

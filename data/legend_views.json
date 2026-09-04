@@ -1,0 +1,51 @@
+{
+ "classes": [
+  {
+   "id": 0,
+   "label": "little to see",
+   "color": "#d9d9d9"
+  },
+  {
+   "id": 1,
+   "label": "panoramic: down over the valley and mountains all round",
+   "color": "#7a0177"
+  },
+  {
+   "id": 2,
+   "label": "looking down over the valley",
+   "color": "#dd3497"
+  },
+  {
+   "id": 3,
+   "label": "mountain backdrop (flat foreground)",
+   "color": "#2c7fb8"
+  },
+  {
+   "id": 4,
+   "label": "open but flat",
+   "color": "#a1dab4"
+  },
+  {
+   "id": 5,
+   "label": "enclosed (ravine or steep hollow)",
+   "color": "#7f4f24"
+  }
+ ],
+ "score_ramp": [
+  "#f7f7f7",
+  "#c7e9b4",
+  "#41b6c4",
+  "#2c7fb8",
+  "#7a0177"
+ ],
+ "depth_ramp": [
+  "#f7fbff",
+  "#08306b"
+ ],
+ "relief_ramp": [
+  "#f7fcf5",
+  "#00441b"
+ ],
+ "method": "36 azimuths x 66 distances to 14.7 km on the Copernicus 30 m DSM, eye 2 m; depth/relief = mean of the best 9 azimuths; openness = share of azimuths whose horizon is >= 1.5 km away; enclosure = share with the horizon above 12 deg within 350 m",
+ "score_formula": "100 x clip(0.40 x min(depth/150,1)^0.7 + 0.35 x min(relief/400,1)^0.7 + 0.25 x openness - 0.5 x enclosure, 0, 1)"
+}
