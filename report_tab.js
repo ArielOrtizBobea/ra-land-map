@@ -189,3 +189,13 @@ function initConceptTab(root, summary, layouts, opts) {
   show('C');
   return map;
 }
+
+// ---------- parcel labels (owner or designation) shown when zoomed in ----------
+function parcelLabels(map, geo, minZoom = 16) {
+  const grp = L.layerGroup();
+  for (const f of geo.features) { const p = f.properties; const ring = (f.geometry.type === 'Polygon' ? f.geometry.coordinates[0] : f.geometry.coordinates[0][0]); let cx = 0, cy = 0; for (const c of ring) { cx += c[0]; cy += c[1]; } cx /= ring.length; cy /= ring.length;
+    const txt = p.owner ? p.owner.replace('Familia (', 'Familia: ').replace(')', '') : (p.Posicional ? `posicional ${p.Posicional}` : `parcela ${p.PARCELA}`);
+    grp.addLayer(L.marker([cy, cx], { interactive: false, icon: L.divIcon({ className: 'lotlbl', html: `<span style="${p.family ? 'color:#b91c1c' : 'color:#374151'}">${txt}<br>${Number(p.Area || p.AREA).toLocaleString('en-US', { maximumFractionDigits: 0 })} m²</span>`, iconSize: [0, 0] }) })); }
+  const sync = () => { const on = map.getZoom() >= minZoom; if (on && !map.hasLayer(grp)) grp.addTo(map); if (!on && map.hasLayer(grp)) map.removeLayer(grp); };
+  map.on('zoomend', sync); sync(); return grp;
+}
