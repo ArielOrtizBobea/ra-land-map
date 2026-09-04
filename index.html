@@ -57,6 +57,8 @@
   <h2>View from each parcel's highest point</h2>
   <div class="cl">Max visible distance by direction: eye 10 m (orange) and 2 m (grey). Rings every 5 km, outer ring 25 km. Surface model: trees count as obstacles.</div>
   <div id="panos"><svg id="pano" viewBox="0 0 300 180"></svg></div>
+  <h2>Access to Parcela 2</h2>
+  <div id="accessTbl" class="cl">run scripts/40_access_road.py</div>
   <h2>Land cover (WorldCover 2021)</h2>
   <table class="kv" id="lcTbl"></table>
   <h2>Structures (Microsoft footprints)</h2>
@@ -135,6 +137,7 @@ const VEC = {
     L.geoJSON(await gj('places'), { pointToLayer: (f, ll) => L.marker(ll).bindTooltip(f.properties.name, { permanent: true, direction: 'right', className: 'lbl' }).bindPopup(popup(f.properties.name, [['type', f.properties.place], ['population', f.properties.population]])) }).addTo(g);
     try { L.geoJSON(await gj('pois'), { pointToLayer: (f, ll) => L.circleMarker(ll, { radius: 5, color: '#6a3d9a', fillOpacity: .8 }).bindPopup(popup(f.properties.name || f.properties.kind, [['kind', f.properties.kind], ['value', f.properties.value]])) }).addTo(g); } catch (e) {}
     return g; },
+  access_routes: async () => L.geoJSON(await gj('access_routes'), { filter: f => f.properties.kind === 'strip' || (f.properties.target === 'top of Parcela 2' && f.properties.design_grade_pct !== 20), style: f => ({ color: f.properties.kind === 'strip' ? '#ff00ff' : ({ 12: '#0571b0', 15: '#e08214', 20: '#7b3294' })[f.properties.design_grade_pct], weight: f.properties.kind === 'strip' ? 3 : 2.5, dashArray: f.properties.kind === 'strip' ? '6 4' : null, opacity: .9 }), onEachFeature: (f, l) => l.bindPopup(popup(f.properties.kind === 'strip' ? f.properties.label : `Alignment, design grade ${f.properties.design_grade_pct}%`, [['from', f.properties.start], ['to', f.properties.target], ['length', fmt(f.properties.length_m) + ' m'], ['climb', fmt(f.properties.gain_m) + ' m'], ['mean grade', f.properties.mean_grade_pct + ' %'], ['max grade', f.properties.max_grade_pct + ' %'], ['length steeper than 12 % / 15 %', `${f.properties.pct_length_over_12} % / ${f.properties.pct_length_over_15} %`]])) }),
   projects: async () => L.geoJSON(await gj('competitors'), { pointToLayer: (f, ll) => L.marker(ll, { icon: L.divIcon({ className: '', html: '<div style="background:#b5121b;color:#fff;border-radius:12px;padding:2px 6px;font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px #0006">$ ' + f.properties.name.split('(')[0].slice(0, 26) + '</div>', iconAnchor: [8, 10] }) }).bindPopup(popup(f.properties.name, [['sector', f.properties.sector], ['lots (m²)', f.properties.lot_m2], ['price', f.properties.price], ['services', f.properties.services], ['position', f.properties.approx ? 'approximate (village anchor)' : 'verified'], ['source', `<a href="${f.properties.url}" target="_blank">listing</a>`], ['notes', f.properties.notes]])) }),
 };
 // menu definition: [key, label, on-by-default, swatch colour]
@@ -144,6 +147,7 @@ const MENU = [
   { title: 'Water', items: [['rivers', 'Rivers & streams (OSM)', true, '#1f78b4'], ['riparian', '30 m riparian strip (Ley 64-00, verify)', false, '#08306b'], ['dist_river', 'Distance to river bands', false, '#6baed6'], ['drainage_dem', 'DEM drainage lines', false, '#4292c6']] },
   { title: 'Roads & places', items: [['roads', 'Roads by surface (OSM)', true, '#000'], ['places', 'Villages & POIs', true, '#2b6cb0'], ['muni', 'Municipio boundary', true, '#222']] },
   { title: 'Structures', items: [['buildings_ms', 'Buildings — Microsoft footprints', true, '#7a1f1f'], ['buildings_osm', 'Buildings — OSM', false, '#f28e2b'], ['structure_density', 'Structure density (per km²)', false, '#e34a33']] },
+  { title: 'Access road study', items: [['slope_pct_window', 'Terrain slope % for road building (10 m)', false, '#fee08b'], ['access_routes', 'Candidate alignments (12 % blue, 15 % orange) + strip', true, '#0571b0']] },
   { title: 'Land cover', items: [['landcover', 'ESA WorldCover 2021 (10 m)', false, '#006400']] },
   { title: 'Market', items: [['projects', 'Nearby lot projects (listings)', true, '#b5121b']] },
 ];
@@ -155,6 +159,8 @@ function updateLegend() {
   if (on('aspect')) h += '<h3>Aspect</h3>' + legendRows(LEG.aspect || []);
   if (on('landcover')) h += '<h3>Land cover</h3>' + legendRows(LEG.landcover || []);
   if (on('dist_river')) h += '<h3>Distance to mapped river</h3>' + legendRows(LEG.dist_river || []);
+  if (on('slope_pct_window')) h += '<h3>Terrain slope for roads</h3>' + legendRows(LEG.slope_pct || []);
+  if (on('access_routes')) h += '<h3>Access alignments</h3><div class="row"><span class="sw" style="background:#ff00ff"></span>straight up the strip (29 % mean)</div><div class="row"><span class="sw" style="background:#0571b0"></span>design grade 12 %</div><div class="row"><span class="sw" style="background:#e08214"></span>design grade 15 %</div>';
   if (Object.keys(LAYERS).some(k => k.startsWith('viewshed_parcel_') && on(k))) h += '<h3>Parcel vantage viewshed</h3><div class="row"><span class="sw" style="background:#ff7f00"></span>visible from the parcel\'s highest point (eye 10 m)</div>';
   if (on('viewshed_2m') || on('viewshed_10m')) h += '<div class="row"><span class="sw" style="background:#ffd92f"></span>visible from the lower field of _3</div>';
   if (on('elevation')) h += '<h3>Elevation</h3><div class="row"><span class="sw" style="background:linear-gradient(90deg,#276419,#7fbc41,#e6f5d0,#fde0ef,#de77ae,#8e0152,#fff)"></span>600 → 1,950 m</div>';
@@ -240,9 +246,9 @@ document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBoun
 
 // ---------- boot ----------
 (async () => {
-  for (const f of ['legend_terrain', 'legend_hydro', 'legend_landcover']) { try { Object.assign(LEG, await js(f)); } catch (e) {} }
+  for (const f of ['legend_terrain', 'legend_hydro', 'legend_landcover', 'legend_access']) { try { Object.assign(LEG, await js(f)); } catch (e) {} }
   try { PSt = await js('parcel_stats'); } catch (e) {}
-  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'viewshed_10m', 'viewshed_2m', 'dist_river', 'drainage_dem', 'landcover', 'structure_density']) await addRaster(k);
+  for (const k of ['hillshade', 'elevation', 'slope_class', 'aspect', 'viewshed_10m', 'viewshed_2m', 'dist_river', 'drainage_dem', 'landcover', 'structure_density', 'slope_pct_window']) await addRaster(k);
   if (PSt) for (const n of Object.keys(PSt)) await addRaster(`viewshed_parcel_${idOf(n)}`);
   for (const [k, mk] of Object.entries(VEC)) { try { LAYERS[k] = await mk(); } catch (e) { console.warn('layer missing', k); } }
   buildMenu();
@@ -251,6 +257,10 @@ document.getElementById('goMuni').onclick = () => { if (LAYERS.muni) map.fitBoun
   if (PSt) { const box = document.getElementById('panos'); box.innerHTML = '';
     for (const n of Object.keys(PSt)) { try { const pv = await js(`panorama_vantage_${idOf(n)}`); const id = 'pano_' + idOf(n); box.insertAdjacentHTML('beforeend', `<div class="cl"><b>${n.replace('6642024034813_1-1-1', 'parcel')}</b></div><svg id="${id}" viewBox="0 0 300 180" style="width:100%;height:170px"></svg>`); drawPano(pv.eye10, pv.eye2, id); } catch (e) {} } }
   try { EG = await js('elev_grid'); } catch (e) {}
+  try { const A = await js('access_summary'); const best = t => A.routes.filter(r => r.target === 'top of Parcela 2' && r.design_grade_pct === t).sort((a, b) => a.length_m - b.length_m);
+    document.getElementById('accessTbl').innerHTML = `<table class="kv"><tr><td>Straight up the strip</td><td>${fmt(A.strip.length_m)} m, +${fmt(A.strip.gain_m)} m, mean ${A.strip.mean_grade_pct} % (not drivable)</td></tr>` +
+      [12, 15].map(t => best(t).map(r => `<tr><td>${r.start.slice(0, 1)} → top, design ${t} %</td><td>${fmt(r.length_m)} m, mean ${r.mean_grade_pct} %, max ${r.max_grade_pct} %</td></tr>`).join('')).join('') +
+      `<tr><td>Terrain slope in Parcela 2</td><td>${Object.entries(A.terrain_slope_pct_classes.parcel_2).map(([k, v]) => `${k}%: ${v}%`).join(' · ')}</td></tr></table><div class="cl">Starts: A = foot of the strip, B = greenhouse field, C = existing road. Grades from the 30 m DEM resampled to 10 m: indicative, verify with a survey.</div>`; } catch (e) {}
   if (parcelLayer) map.fitBounds(parcelLayer.getBounds().pad(0.25));
   map.on('overlayadd', () => Object.keys(LAYERS).forEach(k => { if (!RASTER.has(k) && LAYERS[k].bringToFront && map.hasLayer(LAYERS[k])) LAYERS[k].bringToFront(); }));
 })();

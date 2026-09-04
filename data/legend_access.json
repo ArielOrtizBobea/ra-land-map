@@ -1,0 +1,1 @@
+{"slope_pct": [{"value": 0, "hex": "#1a9641", "name": "0-10 % easy"}, {"value": 1, "hex": "#a6d96a", "name": "10-20 % minor cut/fill"}, {"value": 2, "hex": "#fee08b", "name": "20-35 % side-hill, walls"}, {"value": 3, "hex": "#f46d43", "name": "35-50 % difficult"}, {"value": 4, "hex": "#a50026", "name": ">50 % avoid"}]}
