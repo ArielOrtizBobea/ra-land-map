@@ -66,13 +66,22 @@
   .rx-bar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; margin: 8px 0 4px; border: 1px solid var(--line); } .rx-bar span { display: block; height: 100%; }
   .rx-verdict { margin: 4px 0 12px; }
   .lotlbl span { font: 600 10px ui-monospace, Menlo, monospace; color: #3b2a00; background: #ffffffb0; padding: 0 3px; border-radius: 3px; white-space: nowrap; transform: translate(-50%, -50%); display: inline-block; }
+  /* mountain valleys tab */
+  #valleys { position: absolute; inset: 10px; z-index: 1200; background: #fbfbf8; border-radius: 8px; box-shadow: 0 2px 10px #0003; display: none; padding: 12px 16px 14px; flex-direction: column; overflow: hidden; } #valleys .tabs { margin: 0 0 8px; }
+  .vl-wrap { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 440px; gap: 12px; min-height: 0; } .vl-map { border: 1px solid #ddd; border-radius: 6px; min-height: 60vh; background: #d6e2ea; } .vl-side { overflow: auto; min-height: 0; font-size: 13px; padding-right: 4px; }
+  .vl-card { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: #fff; min-height: 90px; } .vl-card h3 { margin: 0 0 2px; font-size: 15px; } .vl-grid { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: start; margin-top: 6px; } .vl-grid > div { display: flex; flex-direction: column; align-items: center; }
+  table.vl { width: 100%; border-collapse: collapse; font-size: 12px; } table.vl td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: top; } table.vl td:first-child { color: var(--muted); white-space: nowrap; width: 46%; }
+  .vl-weights { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin: 8px 0 4px; font-size: 12px; } .vl-weights label { display: flex; align-items: center; gap: 6px; } .vl-weights input { flex: 1; min-width: 60px; }
+  .vl-filters { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin: 4px 0 8px; align-items: center; } .vl-filters label { display: flex; align-items: center; gap: 4px; }
+  table.vlrank { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; } table.vlrank th, table.vlrank td { padding: 3px 5px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; } table.vlrank th { background: #f1f1ec; position: sticky; top: 0; } table.vlrank tbody tr { cursor: pointer; } table.vlrank tr.sel td { background: #fff3e0; } table.vlrank tr.ours td { font-weight: 600; color: #7f0000; }
+  .vl-label { background: none; border: none; box-shadow: none; font-size: 11px; font-weight: 600; color: #222; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff; white-space: nowrap; } .vl-label.ours { color: #7f0000; font-size: 12px; } .vl-score { display: inline-block; padding: 1px 7px; border-radius: 10px; color: #fff; font-weight: 600; font-size: 11px; }
 </style>
 </head>
 <body>
 <div id="map"></div>
 
 <div id="side" class="panel">
-  <div class="tabs"><span class="tab on" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span></div>
+  <div class="tabs"><span class="tab on" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span><span class="tab" data-tab="valleys">Mountain valleys</span></div>
   <button class="ptog" id="togSide" title="Collapse panel" aria-label="Collapse panel">&#9664;</button>
   <div id="sideBody">
   <h1>RA Land — Rancho Arriba</h1>
@@ -109,11 +118,12 @@
   <div id="legend" class="panel"><h3>Legend</h3><div id="legendBody" class="cl"></div></div>
 </div>
 <div id="coords">move the mouse over the map</div>
-<div id="report"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab on" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span></div><div id="reportBody">loading…</div></div>
-<div id="concepts" class="reportpane"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab on" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span></div><div id="conceptsBody">loading…</div></div>
-<div id="studies" class="reportpane"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab on" data-tab="studies">Market studies</span></div>
+<div id="report"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab on" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span><span class="tab" data-tab="valleys">Mountain valleys</span></div><div id="reportBody">loading…</div></div>
+<div id="concepts" class="reportpane"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab on" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span><span class="tab" data-tab="valleys">Mountain valleys</span></div><div id="conceptsBody">loading…</div></div>
+<div id="studies" class="reportpane"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab on" data-tab="studies">Market studies</span><span class="tab" data-tab="valleys">Mountain valleys</span></div>
 <div class="studiesbar"><span class="btn on" data-study="report_market.html">Retirement and second-home market (2026-09-04)</span><span class="btn" data-study="report_hospitality.html">Resort, glamping and rental alternatives</span><a class="btn" href="report_market.html" target="_blank" rel="noopener">Open in a new tab</a></div>
 <iframe id="studyFrame" title="Market study" src="about:blank"></iframe></div>
+<div id="valleys" class="reportpane"><div class="tabs"><span class="tab" data-tab="map">Map</span><span class="tab" data-tab="report">Access road study</span><span class="tab" data-tab="concepts">Concept plans</span><span class="tab" data-tab="studies">Market studies</span><span class="tab on" data-tab="valleys">Mountain valleys</span></div><div id="valleysBody" style="flex:1;display:flex;flex-direction:column;min-height:0">loading…</div></div>
 
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -122,6 +132,7 @@
 <script src="contours_lod.js"></script>
 <script src="report_tab.js"></script>
 <script src="views.js"></script>
+<script src="valleys.js"></script>
 <script>
 const idOf = n => n.replace(/[^A-Za-z0-9]/g, '_');
 let PSt = null;
@@ -387,9 +398,12 @@ map.on('click', e => {
     let contours = null, reference = null; try { contours = await gj('concept_contours_2m'); } catch (e) {} try { reference = await gj('reference_lots'); } catch (e) {}
     cpMap = initConceptTab(document.getElementById('conceptsBody'), summary, layouts, { base: m => L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 21, maxNativeZoom: 19 }).addTo(m), parcels: await gj('parcel_boundary'), contours, reference });
   } catch (e) { console.warn('concepts', e); }
-  const panes = { report: document.getElementById('report'), concepts: document.getElementById('concepts'), studies: document.getElementById('studies') };
+  const panes = { report: document.getElementById('report'), concepts: document.getElementById('concepts'), studies: document.getElementById('studies'), valleys: document.getElementById('valleys') };
+  let vlMap = null; async function ensureValleys() { if (vlMap) { setTimeout(() => vlMap.invalidateSize(), 50); return; }
+    try { const [data, bg] = await Promise.all([fetch('data/dr_valleys.geojson').then(r => r.json()), fetch('data/dr_background.json').then(r => r.json())]); vlMap = initValleysTab(document.getElementById('valleysBody'), data, bg, 'data/dr_background.png'); } catch (e) { console.warn('valleys', e); document.getElementById('valleysBody').textContent = 'Could not load the valley data.'; } }
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { const t = b.dataset.tab; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === t));
-    for (const [k, el] of Object.entries(panes)) el.style.display = k === t ? (k === 'studies' ? 'flex' : 'block') : 'none';
+    for (const [k, el] of Object.entries(panes)) el.style.display = k === t ? ((k === 'studies' || k === 'valleys') ? 'flex' : 'block') : 'none';
+    if (t === 'valleys') ensureValleys();
     if (t === 'studies') { const f = document.getElementById('studyFrame'); if (f.getAttribute('src') === 'about:blank') f.src = 'report_market.html'; }
     if (t === 'report' && rxMap) setTimeout(() => rxMap.invalidateSize(), 50); if (t === 'concepts' && cpMap) setTimeout(() => cpMap.invalidateSize(), 50); }));
   document.querySelectorAll('.studiesbar .btn[data-study]').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('.studiesbar .btn[data-study]').forEach(x => x.classList.toggle('on', x === b)); const f = document.getElementById('studyFrame'); f.src = b.dataset.study; const a = document.querySelector('.studiesbar a'); if (a) a.href = b.dataset.study; }));
