@@ -1,6 +1,6 @@
 // Mountain valleys tab: DR-wide comparison of mountain valley systems (stage-1/2 outputs of scripts/82-84).
 // initValleysTab(root, data, bg, bgSrc) -> Leaflet map. data = dr_valleys.geojson (features + criteria + default_weights), bg = dr_background.json.
-function initValleysTab(root, data, bg, bgSrc) {
+function initValleysTab(root, data, bg, bgSrc, roads) {
   const C = data.criteria, W = Object.assign({}, data.default_weights), feats = data.features;
   const SHORT = { cool: 'Cool', near_sd: 'Sto Dgo', near_sti: 'Santiago', health: 'Hospital', river: 'River', scenic: 'Scenic', quiet: 'Quiet', tourism: 'Tourism' };
   const TYPES = ['town valley', 'rural valley', 'uninhabited upland', 'plain']; const show = { 'town valley': true, 'rural valley': true, 'uninhabited upland': true, plain: false };
@@ -21,11 +21,15 @@ function initValleysTab(root, data, bg, bgSrc) {
   // ---- map ----
   const el = root.querySelector('#vlMap'); const [Wb, Sb, Eb, Nb] = bg.bounds_wgs84;
   const m = L.map(el, { preferCanvas: false, zoomSnap: 0.25, minZoom: 7, maxZoom: 14, attributionControl: true });
-  m.attributionControl.setPrefix(false).addAttribution('Terrain: Copernicus GLO-90 · Data: WorldClim, WorldPop, OpenStreetMap, OSRM');
+  m.attributionControl.setPrefix(false).addAttribution('Terrain: Copernicus GLO-90 · Roads and places: OpenStreetMap · WorldClim, WorldPop, OSRM');
   L.imageOverlay(bgSrc, [[Sb, Wb], [Nb, Eb]], { opacity: 1 }).addTo(m); m.fitBounds([[17.55, -71.95], [19.95, -68.4]]);
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(m);
   for (const [name, lat, lon] of [['Santo Domingo', 18.4861, -69.9312], ['Santiago', 19.4517, -70.697]]) L.circleMarker([lat, lon], { radius: 5, color: '#111', fillColor: '#111', fillOpacity: 1, weight: 1 }).addTo(m).bindTooltip(name, { permanent: true, direction: 'right', className: 'vl-label' });
-  const layer = L.geoJSON(data, { style, onEachFeature: (f, ly) => { ly.on('mouseover', () => { if (!pinned) card(f.properties); ly.setStyle({ weight: 3 }); }); ly.on('mouseout', () => { if (!pinned) cardHint(); layer.resetStyle(ly); }); ly.on('click', e => { L.DomEvent.stop(e); pin(f, ly); }); } }).addTo(m);
+  const roadStyle = f => f.properties.highway === 'primary' ? { color: '#6b6b6b', weight: 1.1, opacity: 0.8 } : { color: '#3b3b3b', weight: 2.2, opacity: 0.9 };
+  const roadLayer = roads ? L.geoJSON(roads, { style: roadStyle, interactive: false }).addTo(m) : null;
+  const layer = L.geoJSON(data, { style, onEachFeature: (f, ly) => { const p = f.properties;
+    ly.bindTooltip(() => `<b>${p.name}</b><br>${p.type} · ${fmt(p.floor_elev_m)} m · ${fmt(p.tavg_c, 1)} °C · score ${(100 * score(p)).toFixed(0)}`, { sticky: true, direction: 'top', opacity: 0.95, className: 'vl-tip' });
+    ly.on('mouseover', () => { if (!pinned) card(p); ly.setStyle({ weight: 3 }); }); ly.on('mouseout', () => { if (!pinned) cardHint(); layer.resetStyle(ly); }); ly.on('click', e => { L.DomEvent.stop(e); pin(f, ly); }); } }).addTo(m);
   const labels = L.layerGroup().addTo(m);
   function drawLabels() { labels.clearLayers(); const z = m.getZoom(); const ranked = feats.map(f => f.properties).filter(visible).sort((a, b) => score(b) - score(a)); const top = new Set(ranked.slice(0, z < 8 ? 7 : z < 9 ? 16 : 80).map(p => p.id));
     for (const f of feats) { const p = f.properties; if (!visible(p)) continue; if (!(top.has(p.id) || p.ours || (p.type === 'town valley' && z >= 9))) continue;
@@ -61,7 +65,8 @@ function initValleysTab(root, data, bg, bgSrc) {
   // ---- weights + filters ----
   const wEl = root.querySelector('#vlWeights'); wEl.innerHTML = `<div style="grid-column:1/-1;font-weight:600;margin-top:4px">Weights</div>` + Object.entries(C).map(([k, lab]) => `<label title="${lab}"><span style="width:64px;display:inline-block">${SHORT[k]}</span><input type="range" min="0" max="3" step="0.5" value="${W[k]}" data-k="${k}"><b style="width:22px;text-align:right">${W[k]}</b></label>`).join('');
   wEl.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => { W[inp.dataset.k] = Number(inp.value); inp.nextElementSibling.textContent = inp.value; refresh(); }));
-  const fEl = root.querySelector('#vlFilters'); fEl.innerHTML = TYPES.map(t => `<label><input type="checkbox" data-t="${t}" ${show[t] ? 'checked' : ''}> ${t}</label>`).join('') + `<label>floor above <select id="vlElev">${[400, 500, 600, 800, 1000].map(v => `<option value="${v}">${v} m</option>`).join('')}</select></label>`;
+  const fEl = root.querySelector('#vlFilters'); fEl.innerHTML = TYPES.map(t => `<label><input type="checkbox" data-t="${t}" ${show[t] ? 'checked' : ''}> ${t}</label>`).join('') + `<label>floor above <select id="vlElev">${[400, 500, 600, 800, 1000].map(v => `<option value="${v}">${v} m</option>`).join('')}</select></label>` + (roadLayer ? `<label><input type="checkbox" id="vlRoads" checked> main roads</label>` : '');
+  if (roadLayer) fEl.querySelector('#vlRoads').addEventListener('change', e => { if (e.target.checked) roadLayer.addTo(m); else m.removeLayer(roadLayer); });
   fEl.querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', () => { show[cb.dataset.t] = cb.checked; refresh(); }));
   fEl.querySelector('#vlElev').addEventListener('change', e => { minElev = Number(e.target.value); refresh(); });
   // ---- ranking table ----

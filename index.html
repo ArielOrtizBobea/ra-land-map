@@ -74,7 +74,7 @@
   .vl-weights { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; margin: 8px 0 4px; font-size: 12px; } .vl-weights label { display: flex; align-items: center; gap: 6px; } .vl-weights input { flex: 1; min-width: 60px; }
   .vl-filters { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; margin: 4px 0 8px; align-items: center; } .vl-filters label { display: flex; align-items: center; gap: 4px; }
   table.vlrank { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; } table.vlrank th, table.vlrank td { padding: 3px 5px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; } table.vlrank th { background: #f1f1ec; position: sticky; top: 0; } table.vlrank tbody tr { cursor: pointer; } table.vlrank tr.sel td { background: #fff3e0; } table.vlrank tr.ours td { font-weight: 600; color: #7f0000; }
-  .vl-label { background: none; border: none; box-shadow: none; font-size: 11px; font-weight: 600; color: #222; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff; white-space: nowrap; } .vl-label.ours { color: #7f0000; font-size: 12px; } .vl-score { display: inline-block; padding: 1px 7px; border-radius: 10px; color: #fff; font-weight: 600; font-size: 11px; }
+  .vl-label { background: none; border: none; box-shadow: none; font-size: 11px; font-weight: 600; color: #222; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff; white-space: nowrap; } .vl-label.ours { color: #7f0000; font-size: 12px; } .vl-score { display: inline-block; padding: 1px 7px; border-radius: 10px; color: #fff; font-weight: 600; font-size: 11px; } .vl-tip { font-size: 12px; line-height: 1.35; }
 </style>
 </head>
 <body>
@@ -400,7 +400,7 @@ map.on('click', e => {
   } catch (e) { console.warn('concepts', e); }
   const panes = { report: document.getElementById('report'), concepts: document.getElementById('concepts'), studies: document.getElementById('studies'), valleys: document.getElementById('valleys') };
   let vlMap = null; async function ensureValleys() { if (vlMap) { setTimeout(() => vlMap.invalidateSize(), 50); return; }
-    try { const [data, bg] = await Promise.all([fetch('data/dr_valleys.geojson').then(r => r.json()), fetch('data/dr_background.json').then(r => r.json())]); vlMap = initValleysTab(document.getElementById('valleysBody'), data, bg, 'data/dr_background.png'); } catch (e) { console.warn('valleys', e); document.getElementById('valleysBody').textContent = 'Could not load the valley data.'; } }
+    try { const [data, bg, roads] = await Promise.all([fetch('data/dr_valleys.geojson').then(r => r.json()), fetch('data/dr_background.json').then(r => r.json()), fetch('data/dr_roads.geojson').then(r => r.ok ? r.json() : null).catch(() => null)]); vlMap = initValleysTab(document.getElementById('valleysBody'), data, bg, 'data/dr_background.png', roads); } catch (e) { console.warn('valleys', e); document.getElementById('valleysBody').textContent = 'Could not load the valley data.'; } }
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { const t = b.dataset.tab; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === t));
     for (const [k, el] of Object.entries(panes)) el.style.display = k === t ? ((k === 'studies' || k === 'valleys') ? 'flex' : 'block') : 'none';
     if (t === 'valleys') ensureValleys();
